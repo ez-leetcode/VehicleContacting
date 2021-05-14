@@ -1,0 +1,68 @@
+
+#https
+server:
+  #使用https默认端口
+  port: 8085
+
+
+#连接数据库设置
+spring:
+  datasource:
+    username: root
+    password: West2online
+    url: jdbc:mysql://47.115.128.193:3306/VehicleContacting?useSSL=false&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+  #上传文件大小设置
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  #springmail
+  mail:
+    host: smtp.qq.com
+    username: 1006021669@qq.com
+    password: pdlcmbypgwrqbfac
+    default-encoding: UTF-8
+    port: 465
+    properties.mail.smtp.ssl.enable: true
+  #redis配置
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password:
+    jedis:
+      pool:
+        max-active: 8
+        max-wait: -1
+        max-idle: 8
+        min-idle: 0
+    connect-timeout: 30000
+    client-type: jedis
+  profiles:
+    #配置开发环境
+    active: dev
+
+
+#日志配置
+logging:
+  file:
+    path: /spring/log
+    name: west2xianyu.log
+  level:
+    io:
+      swagger:
+        models:
+          parameters:
+            AbstractSerializableParameter: error
+
+
+#mybatis-plus配置
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-value: 1            #已被删除记为1
+      logic-not-delete-value: 0        #未被删除记为0
+
