@@ -43,8 +43,8 @@ public class SwaggerConfig {
         //作者信息
         Contact contact = new Contact("yqc","https://github.com/ez-leetcode/VehicleContacting","1006021669@qq.com");
         return new ApiInfo(
-                "west2闲鱼",
-                "闲鱼接口文档",
+                "小青龙",
+                "小青龙接口文档",
                 "v1.0",
                 "https://github.com/ez-leetcode/VehicleContacting",
                 contact,

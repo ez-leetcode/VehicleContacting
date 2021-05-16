@@ -2,6 +2,7 @@ package com.vehiclecontacting.demo;
 
 import com.vehiclecontacting.mapper.RoleMapper;
 import com.vehiclecontacting.pojo.Role;
+import com.vehiclecontacting.service.SmsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -9,14 +10,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 class DemoApplicationTests {
 
+    /*
     @Autowired
-    private RoleMapper roleMapper;
+    private SmsService smsService;
 
     @Test
-    void contextLoads() {
-        Role role = new Role(2,"ADMIN",null,null);
-        int result = roleMapper.insert(role);
-        System.out.println(result);
+    void sendSms(){
+        smsService.sendSms("17605024713","52678",1);
     }
-
+     */
 }

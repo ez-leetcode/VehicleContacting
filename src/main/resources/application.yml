@@ -1,11 +1,18 @@
-
-#https
 server:
-  #使用https默认端口
-  port: 8085
+  #浣跨敤https榛樿绔彛
+  port: 443
+  #https鍔犲瘑閰嶇疆
+  ssl:
+    #璇佷功璺緞
+    key-store: classpath:rat403.cn.pfx
+    #璇佷功瀵嗙爜
+    key-store-password: N2sjS3S3
+    #璇佷功绫诲瀷
+    key-store-type: PKCS12
+    #寮�鍚痵sl
+    enabled: true
 
-
-#连接数据库设置
+#mysql
 spring:
   datasource:
     username: root
@@ -13,7 +20,7 @@ spring:
     url: jdbc:mysql://47.115.128.193:3306/VehicleContacting?useSSL=false&useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.alibaba.druid.pool.DruidDataSource
-  #上传文件大小设置
+  #涓婁紶鏂囦欢
   servlet:
     multipart:
       max-file-size: 20MB
@@ -26,7 +33,7 @@ spring:
     default-encoding: UTF-8
     port: 465
     properties.mail.smtp.ssl.enable: true
-  #redis配置
+  #redis
   redis:
     host: 127.0.0.1
     port: 6379
@@ -40,11 +47,10 @@ spring:
     connect-timeout: 30000
     client-type: jedis
   profiles:
-    #配置开发环境
+    #
     active: dev
 
-
-#日志配置
+#鏃ュ織
 logging:
   file:
     path: /spring/log
@@ -56,13 +62,11 @@ logging:
           parameters:
             AbstractSerializableParameter: error
 
-
-#mybatis-plus配置
+#mybatis plus
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
-      logic-delete-value: 1            #已被删除记为1
-      logic-not-delete-value: 0        #未被删除记为0
-
+      logic-delete-value: 1
+      logic-not-delete-value: 0

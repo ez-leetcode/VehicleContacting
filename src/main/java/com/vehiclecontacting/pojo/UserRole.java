@@ -23,12 +23,11 @@ public class UserRole {
     //注册的时候会添加角色
 
     @JsonFormat(shape = JsonFormat.Shape.STRING)
-    @ApiModelProperty(value = "编号",notes = "雪花算法，唯一，数据库中作为主键")
     @TableId(type = IdType.ID_WORKER)
     private Long id;
 
     @ApiModelProperty(value = "用户id")
-    private String user;
+    private Long user;
 
     @ApiModelProperty(value = "角色编号id")
     private Integer role;
