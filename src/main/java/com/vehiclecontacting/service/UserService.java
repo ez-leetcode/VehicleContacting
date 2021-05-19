@@ -13,7 +13,7 @@ public interface UserService {
 
     String uploadPhoto(MultipartFile file, String id);
 
-    User getUser(Long id);
+    User getUser(Long id,String phone);
 
     String patchUser(Long id,String username,String sex);
 
@@ -24,4 +24,8 @@ public interface UserService {
     String changePassword(String phone,String code,String oldPassword,String newPassword);
 
     String findPassword(String phone,String code,String newPassword);
+
+    String addFans(Long fromId,Long toId);
+
+    String removeFans(Long fromId,Long toId);
 }

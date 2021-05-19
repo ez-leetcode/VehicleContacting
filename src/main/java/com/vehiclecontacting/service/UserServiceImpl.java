@@ -3,8 +3,10 @@ package com.vehiclecontacting.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.vehiclecontacting.mapper.FansMapper;
 import com.vehiclecontacting.mapper.UserMapper;
 import com.vehiclecontacting.mapper.UserRoleMapper;
+import com.vehiclecontacting.pojo.Fans;
 import com.vehiclecontacting.pojo.User;
 import com.vehiclecontacting.pojo.UserRole;
 import com.vehiclecontacting.utils.JwtUtils;
@@ -31,6 +33,9 @@ public class UserServiceImpl implements UserService{
 
     @Autowired
     private UserRoleMapper userRoleMapper;
+
+    @Autowired
+    private FansMapper fansMapper;
 
     @Override
     public String register(String phone, String code,String password) {
@@ -106,9 +111,16 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public User getUser(Long id) {
+    public User getUser(Long id,String phone) {
         log.info("正在获取用户信息：" + id);
-        User user = userMapper.selectById(id);
+        User user;
+        if(phone == null){
+            user = userMapper.selectById(id);
+        }else{
+            QueryWrapper<User> wrapper = new QueryWrapper<>();
+            wrapper.eq("phone",phone);
+            user = userMapper.selectOne(wrapper);
+        }
         if(user == null){
             log.warn("获取用户信息失败，用户不存在");
             return null;
@@ -252,4 +264,62 @@ public class UserServiceImpl implements UserService{
         log.info("更新头像路径成功：" + user.getPhoto());
         return user.getPhoto();
     }
+
+
+    @Override
+    public String addFans(Long fromId, Long toId) {
+        User user = userMapper.selectById(fromId);
+        User user1 = userMapper.selectById(toId);
+        if(user == null || user1 == null){
+            log.error("添加关注失败，用户不存在");
+            return "existWrong";
+        }
+        QueryWrapper<Fans> wrapper1 = new QueryWrapper<>();
+        wrapper1.eq("from_id",fromId)
+                .eq("to_id",toId);
+        Fans fans = fansMapper.selectOne(wrapper1);
+        if(fans != null){
+            //已添加关注
+            log.error("添加关注失败，用户已添加关注");
+            return "repeatWrong";
+        }
+        //添加关注
+        Fans fans1 = new Fans(fromId,toId,null);
+        fansMapper.insert(fans1);
+        log.info("添加关注列表成功");
+        //更新关注数和粉丝数，可能可以推到消息队列
+        user.setFollowCounts(user.getFollowCounts() + 1);
+        user1.setFansCounts(user1.getFansCounts() + 1);
+        userMapper.updateById(user);
+        userMapper.updateById(user1);
+        log.info("添加用户关注成功");
+        return "success";
+    }
+
+    @Override
+    public String removeFans(Long fromId, Long toId) {
+        User user = userMapper.selectById(fromId);
+        User user1 = userMapper.selectById(toId);
+        if(user == null || user1 == null){
+            log.error("移除关注失败，用户不存在");
+            return "existWrong";
+        }
+        QueryWrapper<Fans> wrapper = new QueryWrapper<>();
+        wrapper.eq("from_id",fromId)
+                .eq("to_id",toId);
+        Fans fans = fansMapper.selectOne(wrapper);
+        if(fans == null){
+            //未添加关注
+            log.error("移除关注失败，用户并未关注");
+            return "repeatWrong";
+        }
+        //移除关注
+        user.setFollowCounts(user.getFollowCounts() - 1);
+        user1.setFansCounts(user1.getFansCounts() - 1);
+        userMapper.updateById(user);
+        userMapper.updateById(user1);
+        log.info("移除用户关注成功");
+        return "success";
+    }
+
 }

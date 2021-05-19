@@ -6,32 +6,14 @@ import com.tencentcloudapi.common.profile.HttpProfile;
 import com.tencentcloudapi.sms.v20190711.SmsClient;
 import com.tencentcloudapi.sms.v20190711.models.SendSmsRequest;
 import com.tencentcloudapi.sms.v20190711.models.SendSmsResponse;
+import com.vehiclecontacting.config.TencentSmsConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
 
 
 @Slf4j
 @Service
 public class SmsServiceImpl implements SmsService{
-
-    public static String secretId = "AKIDPdbIjtmPkqfCSR9at2uVpsfBRRBepjMi";
-
-    private static final String secretKey = "7wUllTu4xaw1pLabNs62i6D3cuzoMcbJ";
-
-    private static final HashMap<Integer,String> template = new HashMap<>();
-
-    static {
-        //注册
-        template.put(1,"959486");
-        //修改密码
-        template.put(2,"959520");
-        //找回密码
-        template.put(3,"959521");
-        //登录
-        template.put(4,"959522");
-    }
 
     @Override
     public boolean sendSms(String phone, String code,int templateCode) {
@@ -39,7 +21,7 @@ public class SmsServiceImpl implements SmsService{
         log.info("验证码：" + code);
         log.info("模板：" + templateCode);
         try{
-            Credential credential = new Credential(secretId,secretKey);
+            Credential credential = new Credential(TencentSmsConfig.ACCESS_ID,TencentSmsConfig.ACCESS_KEY);
             HttpProfile httpProfile = new HttpProfile();
             httpProfile.setConnTimeout(60);
             httpProfile.setEndpoint("sms.tencentcloudapi.com");
@@ -51,7 +33,7 @@ public class SmsServiceImpl implements SmsService{
             SendSmsRequest request = new SendSmsRequest();
             request.setSmsSdkAppid("1400520404");
             request.setSign("小青龙XiaoQingL");
-            request.setTemplateID(template.get(templateCode));
+            request.setTemplateID(TencentSmsConfig.TEMPLATE.get(templateCode));
             //腾讯云手机号要+86表示
             String [] phoneNumber = {"+86" + phone};
             request.setPhoneNumberSet(phoneNumber);

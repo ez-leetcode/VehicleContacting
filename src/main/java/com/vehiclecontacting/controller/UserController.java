@@ -13,12 +13,10 @@ import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Random;
-import java.util.UUID;
 
 @Api(tags = "用户控制类",protocols = "https")
 @Slf4j
@@ -135,14 +133,16 @@ public class UserController {
     }
 
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query")
+            @ApiImplicitParam(name = "id",value = "用户id",dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "phone",value = "用户电话",dataType = "string",paramType = "query")
     })
     @ApiOperation(value = "获取用户信息（需要用户角色）",notes = "existWrong：用户不存在 success：成功（返回json带user：用户信息）")
     @GetMapping("/user")
-    public Result<JSONObject> getUser(@RequestParam("id") Long id){
+    public Result<JSONObject> getUser(@RequestParam(value = "id",required = false) Long id,
+                                      @RequestParam(value = "phone",required = false) String phone){
         log.info("正在获取用户信息，用户id");
         JSONObject jsonObject = new JSONObject();
-        User user = userService.getUser(id);
+        User user = userService.getUser(id,phone);
         if(user == null){
             return ResultUtils.getResult(jsonObject,"existWrong");
         }
@@ -166,10 +166,9 @@ public class UserController {
     }
 
 
-
     //@Secured("ROLE_USER")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "photo",value = "头像文件",required = true,dataType = "file",paramType = "query"),
+            @ApiImplicitParam(name = "photo",value = "头像文件",required = true,dataType = "file",paramType = "body"),
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "string",paramType = "query")
     })
     @ApiOperation(value = "用户上传头像（需要用户角色）",notes = "existWrong：用户不存在 fileWrong：文件为空 typeWrong：上传格式错误 success：成功，成功后返回json：url（头像url）")
@@ -187,6 +186,30 @@ public class UserController {
             result = ResultUtils.getResult(jsonObject,status);
         }
         return result;
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "关注者id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "被关注者id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "添加关注",notes = "existWrong：用户不存在 repeatWrong：已经关注了（可能是重复请求） success：成功")
+    @PostMapping("/fans")
+    public Result<JSONObject> addFans(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId){
+        log.info("正在添加关注，关注者：" + fromId + " 被关注者：" + toId);
+        return ResultUtils.getResult(new JSONObject(),userService.addFans(fromId,toId));
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "关注者id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "被关注者id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "取消关注",notes = "existWrong：用户不存在 repeatWrong：已经取消关注了/或者没有关注（可能是重复请求） success：成功")
+    @DeleteMapping("/fans")
+    public Result<JSONObject> removeFans(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId){
+        log.info("正在移除关注，关注者：" + fromId + " 被关注者：" + toId);
+        return ResultUtils.getResult(new JSONObject(),userService.removeFans(fromId,toId));
     }
 
 }

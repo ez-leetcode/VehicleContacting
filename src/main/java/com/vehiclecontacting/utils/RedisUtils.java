@@ -30,6 +30,21 @@ public class RedisUtils {
     @Autowired
     private UserMapper userMapper;
 
+    //次数加1
+    public void addKeyByTime(String key,int hours){
+        //防止雪崩，加随机时间
+        String value = redisTemplate.opsForValue().get(key);
+        Random random = new Random();
+        long second = hours * 3600L + random.nextInt(100);
+        int cnt = 0;
+        if(value != null){
+            cnt = Integer.parseInt(value);
+        }
+        cnt ++;
+        //存入redis
+        redisTemplate.opsForValue().set(key,String.valueOf(cnt),second,TimeUnit.SECONDS);
+    }
+
 
     //存带有过期时间的key-value
     public void saveByHoursTime(String key,String value,int hours){

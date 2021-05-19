@@ -22,7 +22,6 @@ import java.util.Date;
 @ApiModel(description = "用户类")
 public class User {
 
-
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     @TableId(type = IdType.ID_WORKER)
     @ApiModelProperty(value = "用户编号",notes = "主键")
@@ -46,11 +45,17 @@ public class User {
     @ApiModelProperty(value = "邮箱",notes = "用户没设置，注册时默认用学号生成学校邮箱")
     private String email;
 
+    @ApiModelProperty(value = "自我介绍")
+    private String introduction;
+
     @ApiModelProperty(value = "粉丝数",notes = "在查看个人信息中呈现(粉丝列表功能)")
     private Integer fansCounts;
 
     @ApiModelProperty(value = "关注数",notes = "在个人信息中呈现(关注列表功能)")
     private Integer followCounts;
+
+    @ApiModelProperty(value = "个人帖子数")
+    private Integer discussCounts;
 
     @ApiModelProperty(value = "是否被冻结")
     private Integer isFrozen;

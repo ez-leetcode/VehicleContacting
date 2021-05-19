@@ -47,8 +47,15 @@ spring:
     connect-timeout: 30000
     client-type: jedis
   profiles:
-    #
+    #开发者环境
     active: dev
+  #rabbitmq
+  rabbitmq:
+    host: 47.115.128.193
+    port: 5672
+    username: ck
+    password: 123456
+    virtual-host: /
 
 #日志
 logging:
