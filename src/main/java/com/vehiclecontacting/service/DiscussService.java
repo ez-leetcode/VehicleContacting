@@ -1,6 +1,7 @@
 package com.vehiclecontacting.service;
 
 import com.alibaba.fastjson.JSONObject;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface DiscussService {
 
@@ -11,5 +12,15 @@ public interface DiscussService {
     String addComment(Long id,Long number,String comments,Long fatherNumber,Long replyNumber);
 
     JSONObject getDiscuss(Integer isOrderByTime,String keyword,Long cnt,Long page);
+
+    String photoUpload(MultipartFile file);
+
+    JSONObject getComment(Long number,Long cnt,Long page,Integer isOrderByTime);
+
+    JSONObject getComment1(Long number,Long cnt,Long page);
+
+    String addFavorDiscuss(Long number,Long id);
+
+    String deleteFavorDiscuss(Long number,Long id);
 
 }

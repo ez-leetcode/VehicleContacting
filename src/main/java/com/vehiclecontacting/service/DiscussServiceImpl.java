@@ -6,15 +6,25 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.vehiclecontacting.mapper.CommentMapper;
 import com.vehiclecontacting.mapper.DiscussMapper;
+import com.vehiclecontacting.mapper.FavorDiscussMapper;
 import com.vehiclecontacting.mapper.UserMapper;
+import com.vehiclecontacting.msg.CommentMsg;
+import com.vehiclecontacting.msg.CommentMsg1;
+import com.vehiclecontacting.msg.DiscussMsg;
+import com.vehiclecontacting.msg.OwnerCommentMsg;
 import com.vehiclecontacting.pojo.Comment;
 import com.vehiclecontacting.pojo.Discuss;
+import com.vehiclecontacting.pojo.FavorDiscuss;
 import com.vehiclecontacting.pojo.User;
+import com.vehiclecontacting.utils.OssUtils;
 import com.vehiclecontacting.utils.RedisUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 
 @Service
@@ -34,6 +44,9 @@ public class DiscussServiceImpl implements DiscussService{
     @Autowired
     private CommentMapper commentMapper;
 
+    @Autowired
+    private FavorDiscussMapper favorDiscussMapper;
+
 
     @Override
     public String generateDiscuss(Long id, String title, String description, String photo1, String photo2, String photo3) {
@@ -41,6 +54,8 @@ public class DiscussServiceImpl implements DiscussService{
         discuss.setFromId(id);
         discuss.setTitle(title);
         discuss.setDescription(description);
+        //设置一下时间
+        discuss.setUpdateTime(new Date());
         if(!(photo1 == null || photo1.equals(""))){
             discuss.setPhoto1(photo1);
         }
@@ -159,12 +174,226 @@ public class DiscussServiceImpl implements DiscussService{
         }
         discussMapper.selectPage(page1,wrapper);
         List<Discuss> discussList = page1.getRecords();
-        jsonObject.put("discussList",discussList);
+        //待处理
+        List<DiscussMsg> discussMsgList = new LinkedList<>();
+        for(Discuss x:discussList){
+            //获取用户实例
+            User user = userMapper.selectById(x.getFromId());
+            DiscussMsg discussMsg = new DiscussMsg(x.getNumber(),x.getPhoto1(),user.getUsername(),user.getPhoto(),x.getTitle(),x.getDescription(),x.getLikeCounts(),
+                    x.getCommentCounts(),x.getFavorCounts(),x.getScanCounts(),x.getUpdateTime());
+            discussMsgList.add(discussMsg);
+        }
+        jsonObject.put("discussList",discussMsgList);
         jsonObject.put("pages",page1.getPages());
         jsonObject.put("counts",page1.getTotal());
         log.info("查询帖子列表成功");
         return jsonObject;
     }
+
+    @Override
+    public String photoUpload(MultipartFile file) {
+        String url = OssUtils.uploadPhoto(file,"discussPhoto");
+        if(url.length() < 12){
+            log.error("上传帖子图片文件失败");
+            return url;
+        }
+        //成功上传图片
+        log.info("上传帖子图片文件成功，url：" + url);
+        return url;
+    }
+
+
+    @Override
+    public JSONObject getComment(Long number, Long cnt, Long page, Integer isOrderByTime) {
+        JSONObject jsonObject = new JSONObject();
+        Discuss discuss = discussMapper.selectById(number);
+        if(discuss == null){
+            log.warn("获取一级评论失败，帖子不存在");
+            return null;
+        }
+        //获取帖子主人实例
+        User user = userMapper.selectById(discuss.getFromId());
+        OwnerCommentMsg ownerCommentMsg = new OwnerCommentMsg(number,user.getId(),user.getUsername(),user.getPhoto(),user.getSex(),discuss.getTitle(),discuss.getDescription(),
+                discuss.getPhoto1(),discuss.getPhoto2(),discuss.getPhoto3(),discuss.getLikeCounts(),discuss.getCommentCounts(),discuss.getFavorCounts(),discuss.getScanCounts(),discuss.getCreateTime(),discuss.getDeleted());
+        jsonObject.put("OwnerComment",ownerCommentMsg);
+        //获得评论列表
+        QueryWrapper<Comment> wrapper = new QueryWrapper<>();
+        Page<Comment> page1 = new Page<>(page,cnt);
+        if(isOrderByTime == 0){
+            wrapper.orderByDesc("create_time");
+        }else if(isOrderByTime == 1){
+            wrapper.orderByDesc("like_counts");
+        }else{
+            wrapper.orderByAsc("create_time");
+        }
+        //没有父级
+        wrapper.eq("father_number",0);
+        wrapper.eq("discuss_number",number);
+        commentMapper.selectPage(page1,wrapper);
+        List<Comment> commentList = page1.getRecords();
+        List<CommentMsg> commentMsgList = new LinkedList<>();
+        for(Comment x:commentList){
+            //获取用户实例
+            User user1 = userMapper.selectById(x.getId());
+            //评论信息实例
+            CommentMsg commentMsg = new CommentMsg(x.getNumber(),x.getId(),user1.getUsername(),user1.getPhoto(),user1.getSex(),x.getComments(),x.getLikeCounts(),x.getCommentCounts(),null,
+                    null,null,null,null,null,null,null,null,null,null,null,null,null,null,x.getCreateTime());
+            QueryWrapper<Comment> wrapper1 = new QueryWrapper<>();
+            wrapper1.eq("father_number",x.getNumber())
+                    .eq("discuss_number",number);
+            //获取下属评论
+            List<Comment> commentList1 = commentMapper.selectList(wrapper1);
+            int k = 1;
+            for(Comment x1:commentList1){
+                if(k == 1){
+                    User user2 = userMapper.selectById(x1.getId());
+                    commentMsg.setReplyDescription1(x1.getComments());
+                    commentMsg.setReplyId1(x1.getId());
+                    commentMsg.setReplyUsername1(user2.getUsername());
+                    if(x1.getReplyNumber() != 0){
+                        //有回复过别人
+                        Comment comment = commentMapper.selectById(x1.getReplyNumber());
+                        User user3 = userMapper.selectById(comment.getId());
+                        commentMsg.setSecondReplyUsername1(user3.getUsername());
+                    }
+                }else if(k == 2){
+                    User user2 = userMapper.selectById(x1.getId());
+                    commentMsg.setReplyDescription2(x1.getComments());
+                    commentMsg.setReplyId2(x1.getId());
+                    commentMsg.setReplyUsername2(user2.getUsername());
+                    if(x1.getReplyNumber() != 0){
+                        //有回复过别人
+                        Comment comment = commentMapper.selectById(x1.getReplyNumber());
+                        User user3 = userMapper.selectById(comment.getId());
+                        commentMsg.setSecondReplyUsername2(user3.getUsername());
+                    }
+                }else if(k == 3){
+                    User user2 = userMapper.selectById(x1.getId());
+                    commentMsg.setReplyDescription3(x1.getComments());
+                    commentMsg.setReplyId3(x1.getId());
+                    commentMsg.setReplyUsername3(user2.getUsername());
+                    if(x1.getReplyNumber() != 0){
+                        //有回复过别人
+                        Comment comment = commentMapper.selectById(x1.getReplyNumber());
+                        User user3 = userMapper.selectById(comment.getId());
+                        commentMsg.setSecondReplyUsername3(user3.getUsername());
+                    }
+                    break;
+                }
+                k ++;
+            }
+            commentMsgList.add(commentMsg);
+        }
+        jsonObject.put("commentList",commentMsgList);
+        jsonObject.put("pages",page1.getPages());
+        jsonObject.put("counts",page1.getTotal());
+        log.info("获取帖子评论列表成功");
+        log.info(jsonObject.toString());
+        //加浏览量待完成
+        return jsonObject;
+    }
+
+
+    @Override
+    public JSONObject getComment1(Long number, Long cnt, Long page) {
+        JSONObject jsonObject = new JSONObject();
+        Comment comment = commentMapper.selectById(number);
+        if(comment == null){
+            log.error("获取评论列表失败，评论不存在");
+            return null;
+        }
+        //评论存在，先获取父评论信息
+        User user = userMapper.selectById(comment.getId());
+        CommentMsg1 commentMsg1 = new CommentMsg1(comment.getNumber(),comment.getId(),comment.getComments(),user.getUsername(),user.getPhoto(),
+                comment.getLikeCounts(),user.getSex(),comment.getCommentCounts(),0L,null,null,null,comment.getCreateTime());
+        jsonObject.put("fatherComment",commentMsg1);
+        //获取子评论信息
+        QueryWrapper<Comment> wrapper = new QueryWrapper<>();
+        wrapper.eq("father_number",comment.getNumber())
+                .orderByDesc("create_time");
+        Page<Comment> page1 = new Page<>(page,cnt);
+        commentMapper.selectPage(page1,wrapper);
+        List<Comment> commentList = page1.getRecords();
+        List<CommentMsg1> commentMsg1List = new LinkedList<>();
+        for(Comment x:commentList){
+            //评论者实例
+            User user1 = userMapper.selectById(x.getId());
+            if(x.getReplyNumber() != 0){
+                //有回复人，获取被回复人的信息
+                Comment comment1 = commentMapper.selectById(x.getNumber());
+                User user2 = userMapper.selectById(comment1.getId());
+                CommentMsg1 commentMsg11 = new CommentMsg1(x.getNumber(),x.getId(),x.getComments(),user1.getUsername(),user1.getPhoto(),x.getLikeCounts(),user1.getSex(),
+                        x.getCommentCounts(),x.getReplyNumber(),comment1.getId(),user2.getUsername(),comment1.getComments(),x.getCreateTime());
+                commentMsg1List.add(commentMsg11);
+            }else{
+                //没有回复人
+                CommentMsg1 commentMsg11 = new CommentMsg1(x.getNumber(),x.getId(),x.getComments(),user1.getUsername(),user1.getPhoto(),x.getLikeCounts(),user1.getSex(),
+                        x.getCommentCounts(),0L,null,null,null,x.getCreateTime());
+                commentMsg1List.add(commentMsg11);
+            }
+        }
+        jsonObject.put("commentList",commentMsg1List);
+        jsonObject.put("pages",page1.getPages());
+        jsonObject.put("counts",page1.getTotal());
+        log.info("获取二级评论信息成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
+
+    @Override
+    public String addFavorDiscuss(Long number, Long id) {
+        //获取帖子
+        Discuss discuss = discussMapper.selectById(number);
+        if(discuss == null){
+            log.error("收藏帖子失败，帖子不存在或已被冻结");
+            return "existWrong";
+        }
+        QueryWrapper<FavorDiscuss> wrapper = new QueryWrapper<>();
+        wrapper.eq("number",number)
+                .eq("id",id);
+        FavorDiscuss favorDiscuss = favorDiscussMapper.selectOne(wrapper);
+        if(favorDiscuss != null){
+            log.error("收藏帖子失败，帖子已被收藏");
+            return "repeatWrong";
+        }
+        //收藏帖子
+        FavorDiscuss favorDiscuss1 = new FavorDiscuss(number,id,null);
+        favorDiscussMapper.insert(favorDiscuss1);
+        //更新帖子收藏数
+        discuss.setFavorCounts(discuss.getFavorCounts() + 1);
+        discussMapper.updateById(discuss);
+        //通知待完成
+        log.info("收藏帖子成功");
+        return "success";
+    }
+
+    @Override
+    public String deleteFavorDiscuss(Long number, Long id) {
+        //获取帖子
+        Discuss discuss = discussMapper.selectById(number);
+        if(discuss == null){
+            log.error("移除收藏帖子失败，帖子不存在或已被冻结");
+            return "existWrong";
+        }
+        QueryWrapper<FavorDiscuss> wrapper = new QueryWrapper<>();
+        wrapper.eq("number",number)
+                .eq("id",id);
+        FavorDiscuss favorDiscuss = favorDiscussMapper.selectOne(wrapper);
+        if(favorDiscuss == null){
+            //没有添加收藏
+            log.error("移除收藏帖子失败，帖子未被收藏");
+            return "repeatWrong";
+        }
+        //移除收藏
+        favorDiscussMapper.delete(wrapper);
+        //修改收藏数
+        discuss.setFavorCounts(discuss.getFavorCounts() - 1);
+        discussMapper.updateById(discuss);
+        log.info("移除帖子收藏成功");
+        return "success";
+    }
+
 
 
 }

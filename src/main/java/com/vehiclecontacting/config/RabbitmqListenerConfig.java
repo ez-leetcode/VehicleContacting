@@ -5,13 +5,13 @@ import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
-@Component
-@Slf4j
+//@Component
+//@Slf4j
 public class RabbitmqListenerConfig {
 
-    @RabbitListener(queues = "xql_queue")
-    public void ListenerQueue(Message message){
-        log.info(message.toString());
-    }
+   // @RabbitListener(queues = "xql_queue")
+   // public void ListenerQueue(Message message){
+   //     log.info(message.toString());
+   // }
 
 }

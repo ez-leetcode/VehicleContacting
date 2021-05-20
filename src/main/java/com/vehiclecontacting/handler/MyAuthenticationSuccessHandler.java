@@ -39,6 +39,15 @@ public class MyAuthenticationSuccessHandler implements AuthenticationSuccessHand
         User user = (User) authentication.getPrincipal();
         log.info("登录用户：" + user.getUsername());
         log.info(user.toString());
+        com.vehiclecontacting.pojo.User user1 = userMapper.selectById(user.getUsername());
+        if(user1.getIsFrozen() == 1){
+            log.warn("登录失败，用户账号已被冻结，frozenDate：" + user1.getFrozenDate());
+            jsonObject.put("frozenDate",user1.getFrozenDate());
+            printWriter.write(ResultUtils.getResult(jsonObject,"frozenWrong").toString());
+            printWriter.flush();
+            printWriter.close();
+            return ;
+        }
         //生成新的token
         String token = JwtUtils.createToken(user.getUsername(),user.getPassword());
         log.info("新生成token：" + token);
@@ -46,7 +55,7 @@ public class MyAuthenticationSuccessHandler implements AuthenticationSuccessHand
         redisUtils.saveByHoursTime(user.getUsername(),token,9999);
         jsonObject.put("token",token);
         //输出信息
-        printWriter.write(ResultUtils.getResult(jsonObject, "loginSuccess").toString());
+        printWriter.write(ResultUtils.getResult(jsonObject, "success").toString());
         printWriter.flush();
         printWriter.close();
     }

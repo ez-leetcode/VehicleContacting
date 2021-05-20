@@ -212,4 +212,23 @@ public class UserController {
         return ResultUtils.getResult(new JSONObject(),userService.removeFans(fromId,toId));
     }
 
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "keyword",value = "搜索关键词",dataType = "string",paramType = "query")
+    })
+    @ApiOperation(value = "获取用户粉丝列表",notes = "success：成功 ")
+    @GetMapping("/fans")
+    public Result<JSONObject> getFans(@RequestParam("id") Long id,@RequestParam("cnt") Long cnt,
+                                      @RequestParam("page") Long page,@RequestParam(value = "keyword",required = false) String keyword){
+        log.info("正在获取用户粉丝列表，id：" + id + " cnt：" + cnt + " page：" + page);
+        return ResultUtils.getResult(userService.getFans(id,cnt,page,keyword),"success");
+    }
+
+
+
+
+
 }

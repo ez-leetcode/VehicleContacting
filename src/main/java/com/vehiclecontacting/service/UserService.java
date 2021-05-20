@@ -28,4 +28,6 @@ public interface UserService {
     String addFans(Long fromId,Long toId);
 
     String removeFans(Long fromId,Long toId);
+
+    JSONObject getFans(Long id,Long cnt,Long page,String keyword);
 }

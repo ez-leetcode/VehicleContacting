@@ -13,6 +13,7 @@ import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Api(tags = "帖子聊天控制类",protocols = "https")
 @Slf4j
@@ -87,7 +88,7 @@ public class DiscussController {
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query"),
     })
-    @ApiOperation(value = "获取主页面帖子浏览",notes = "success：成功")
+    @ApiOperation(value = "获取主页面帖子浏览",notes = "success：成功（返回json discussList（主页帖子信息列表） pages（页面总数） counts（帖子总数））")
     @GetMapping("/discuss")
     public Result<JSONObject> getDiscuss(@RequestParam("isOrderByTime") Integer isOrderByTime,@RequestParam(value = "keyword",required = false) String keyword,
                                          @RequestParam("cnt") Long cnt,@RequestParam("page") Long page){
@@ -95,12 +96,105 @@ public class DiscussController {
         return ResultUtils.getResult(discussService.getDiscuss(isOrderByTime,keyword,cnt,page),"success");
     }
 
+/*
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "评论用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "comments",value = "评论内容",required = true,dataType = "string",paramType = "query"),
+            @ApiImplicitParam(name = "discussNumber",value = "帖子编号",required = true,dataType = "string",paramType = "query"),
+            @ApiImplicitParam(name = "fatherNumber",value = "父级评论编号（不是留言下面的留言填0）",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "replyNumber",value = "被回复评论编号（不是留言下面的留言并且还在回复别人填0）",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "用户添加评论",notes = "existWrong：帖子或父级评论或被回复评论不存在 success：成功")
+    @PostMapping("/comment")
+    public Result<JSONObject> addComment(@RequestParam("id") Long id,@RequestParam("comments") String comments,
+                                         @RequestParam("discussNumber") String discussNumber,@RequestParam("fatherNumber") Long fatherNumber,
+                                         @RequestParam("replyNumber") Long replyNumber){
+        log.info("正在添加用户评论，id：" + id + " comments：" + comments + " discussNumber：" + discussNumber + " fatherNumber：" + fatherNumber + " replyNumber：" + replyNumber);
+
+    }
 
 
-    @ApiOperation(value = "获取评论列表",notes = "existWrong")
+ */
+
+
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "isOrderByTime",value = "是否按时间顺序（0按时间倒序，1按热度，2按时间正序）",required = true,dataType = "int",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "获取评论列表（一级页面）",notes = "existWrong：帖子不存在（可能被删了，提示一下） success：成功（返回json ownerComment（楼主的评论和帖子的相关信息） pages（页面总数） counts（帖子总数） commentList（评论列表））")
     @GetMapping("/comment")
-    public Result<JSONObject> getComment(){
-        return null;
+    public Result<JSONObject> getComment(@RequestParam("number") Long number,@RequestParam("isOrderByTime") Integer isOrderByTime,
+                                         @RequestParam("cnt") Long cnt,@RequestParam("page") Long page){
+        log.info("正在获取评论列表（一级页面） number：" + number + " isOrderByTime：" + isOrderByTime + " cnt：" + cnt + " page：" + page);
+        JSONObject jsonObject = discussService.getComment(number,cnt,page,isOrderByTime);
+        if(jsonObject == null){
+            return ResultUtils.getResult(new JSONObject(),"existWrong");
+        }
+        return ResultUtils.getResult(jsonObject,"success");
+    }
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "number",value = "父级评论编号",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "获取评论列表（二级页面，和B站一样只能按时间排序）",notes = "existWrong：评论不存在 success：成功（返回json fatherComment（父级评论） commentList（二级评论） pages（页面总数） counts（评论总数））")
+    @GetMapping("/comment1")
+    public Result<JSONObject> getComment1(@RequestParam("number") Long number,@RequestParam("cnt") Long cnt,
+                                          @RequestParam("page") Long page){
+        log.info("正在获取评论列表（二级页面） number：" + number + " cnt：" + cnt + " page：" + page);
+        JSONObject jsonObject = discussService.getComment1(number,cnt,page);
+        if(jsonObject == null){
+            return ResultUtils.getResult(new JSONObject(),"existWrong");
+        }
+        return ResultUtils.getResult(jsonObject,"success");
+    }
+
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "photo",required = true,dataType = "file",paramType = "query")
+    })
+    @ApiOperation(value = "用户帖子图片上传",notes = "fileWrong：文件为空 typeWrong：文件类型错误 success：成功（返回json带url）")
+    @PostMapping("/discussPhoto")
+    public Result<JSONObject> photoUpload(@RequestParam("photo") MultipartFile file){
+        log.info("正在上传帖子图片");
+        String url = discussService.photoUpload(file);
+        if(url.length() < 12){
+            return ResultUtils.getResult(new JSONObject(),url);
+        }
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("url",url);
+        return ResultUtils.getResult(jsonObject,"success");
+    }
+
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "id",value = "收藏用户id",required = true,dataType = "Long",paramType = "query"),
+    })
+    @ApiOperation(value = "收藏帖子",notes = "repeatWrong：帖子已被收藏（可能是重复收藏） existWrong：帖子不存在 success：成功")
+    @PostMapping("/favorDiscuss")
+    public Result<JSONObject> favorDiscuss(@RequestParam("id") Long id,@RequestParam("number") Long number){
+        log.info("正在收藏帖子，number：" + number + " id：" + id);
+        return ResultUtils.getResult(new JSONObject(),discussService.addFavorDiscuss(number,id));
+    }
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "id",value = "收藏用户id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "移除帖子收藏",notes = "repeatWrong：帖子未被收藏（可能是重复请求） existWrong：帖子不存在 success：成功")
+    @DeleteMapping("/favorDiscuss")
+    public Result<JSONObject> removeDiscuss(@RequestParam("number") Long number,@RequestParam("id") Long id){
+        log.info("正在移除帖子收藏，number：" + number + " id：" + id);
+        return ResultUtils.getResult(new JSONObject(),discussService.deleteFavorDiscuss(number,id));
     }
 
 }

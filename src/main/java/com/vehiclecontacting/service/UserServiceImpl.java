@@ -3,6 +3,7 @@ package com.vehiclecontacting.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.vehiclecontacting.mapper.FansMapper;
 import com.vehiclecontacting.mapper.UserMapper;
 import com.vehiclecontacting.mapper.UserRoleMapper;
@@ -321,5 +322,21 @@ public class UserServiceImpl implements UserService{
         log.info("移除用户关注成功");
         return "success";
     }
+
+
+    @Override
+    public JSONObject getFans(Long id, Long cnt, Long page, String keyword) {
+        JSONObject jsonObject = new JSONObject();
+        QueryWrapper<Fans> wrapper = new QueryWrapper<>();
+        //自己写一个牛一点的
+        Page<Fans> page1 = new Page<>(page,cnt);
+        fansMapper.selectPage(page1,wrapper);
+        return jsonObject;
+    }
+
+
+
+
+
 
 }

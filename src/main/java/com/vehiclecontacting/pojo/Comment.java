@@ -2,6 +2,7 @@ package com.vehiclecontacting.pojo;
 
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
@@ -19,13 +20,16 @@ import java.util.Date;
 public class Comment {
 
     @TableId(type = IdType.ID_WORKER)
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     @ApiModelProperty("评论编号")
     private Long number;
 
     @ApiModelProperty("评论者id")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long id;
 
     @ApiModelProperty("帖子编号")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long discussNumber;
 
     @ApiModelProperty("评论内容")
@@ -50,4 +54,5 @@ public class Comment {
     @ApiModelProperty("创建日期")
     @TableField(fill = FieldFill.INSERT)
     private Date createTime;
+
 }
