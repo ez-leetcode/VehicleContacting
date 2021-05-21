@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.vehiclecontacting.mapper.FansMapper;
 import com.vehiclecontacting.mapper.UserMapper;
 import com.vehiclecontacting.mapper.UserRoleMapper;
+import com.vehiclecontacting.msg.FansMsg;
 import com.vehiclecontacting.pojo.Fans;
 import com.vehiclecontacting.pojo.User;
 import com.vehiclecontacting.pojo.UserRole;
@@ -20,6 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 
 
 @Service
@@ -136,8 +139,26 @@ public class UserServiceImpl implements UserService{
         wrapper.eq("phone",phone);
         User user = userMapper.selectOne(wrapper);
         if(user == null){
-            log.error("登录失败，用户不存在");
-            return "existWrong";
+            log.warn("登录失败，用户不存在");
+            String redisCode = redisUtils.getValue("4_" + phone);
+            if(redisCode == null){
+                log.error("登录失败，验证码不存在");
+                return "codeExistWrong";
+            }
+            if(!redisCode.equals(code.toLowerCase())){
+                log.error("登录失败验证码错误");
+                return "codeWrong";
+            }
+            //账号不存在，当场创建一个账户
+            User user1 = new User();
+            user1.setUsername(phone);
+            user1.setPhone(phone);
+            user1.setPassword(new BCryptPasswordEncoder().encode(phone));
+            userMapper.insert(user1);
+            log.info("创建新用户成功");
+            log.info("短信登录验证成功（还帮人家注册了）");
+            redisUtils.delete("4_" + phone);
+            return "success";
         }
         if(user.getFrozenDate() != null && user.getFrozenDate().after(new Date())){
             log.error("登录失败用户已被封禁");
@@ -327,16 +348,51 @@ public class UserServiceImpl implements UserService{
     @Override
     public JSONObject getFans(Long id, Long cnt, Long page, String keyword) {
         JSONObject jsonObject = new JSONObject();
-        QueryWrapper<Fans> wrapper = new QueryWrapper<>();
         //自己写一个牛一点的
         Page<Fans> page1 = new Page<>(page,cnt);
-        fansMapper.selectPage(page1,wrapper);
+        List<Fans> fansList;
+        if(keyword == null || keyword.equals("")){
+            //没关键词
+            fansList = fansMapper.getFans(page1,id);
+        }else{
+            //有关键词
+            fansList = fansMapper.getFansByKeyword(page1,keyword,id);
+        }
+        List<FansMsg> fansMsgList = new LinkedList<>();
+        for(Fans x:fansList){
+            User user = userMapper.selectById(x.getFromId());
+            fansMsgList.add(new FansMsg(user.getId(),user.getUsername(),user.getSex(),user.getVip(),user.getPhoto(),user.getIntroduction(),x.getCreateTime()));
+        }
+        jsonObject.put("fansList",fansMsgList);
+        jsonObject.put("pages",page1.getPages());
+        jsonObject.put("counts",page1.getTotal());
+        log.info("获取粉丝列表成功");
+        log.info(jsonObject.toString());
         return jsonObject;
     }
 
 
-
-
-
-
+    @Override
+    public JSONObject getFollow(Long id, Long cnt, Long page, String keyword) {
+        JSONObject jsonObject = new JSONObject();
+        Page<Fans> page1 = new Page<>(page,cnt);
+        List<Fans> fansList;
+        if(keyword == null || keyword.equals("")){
+            //没关键词
+            fansList = fansMapper.getFollow(page1,id);
+        }else{
+            fansList = fansMapper.getFansByKeyword(page1,keyword,id);
+        }
+        List<FansMsg> fansMsgList = new LinkedList<>();
+        for(Fans x:fansList){
+            User user = userMapper.selectById(x.getToId());
+            fansMsgList.add(new FansMsg(user.getId(),user.getUsername(),user.getSex(),user.getVip(),user.getPhoto(),user.getIntroduction(),x.getCreateTime()));
+        }
+        jsonObject.put("followList",fansMsgList);
+        jsonObject.put("pages",page1.getPages());
+        jsonObject.put("counts",page1.getTotal());
+        log.info("获取关注列表成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
 }

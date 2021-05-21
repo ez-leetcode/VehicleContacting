@@ -2,6 +2,7 @@ package com.vehiclecontacting.controller;
 
 
 import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.extension.api.R;
 import com.vehiclecontacting.pojo.Result;
 import com.vehiclecontacting.service.DiscussService;
 import com.vehiclecontacting.utils.RedisUtils;
@@ -45,7 +46,10 @@ public class DiscussController {
                                             @RequestParam(value = "photo3",required = false) String photo3){
         log.info("用户正在创建帖子，id：" + id + " title：" + title + " description：" + description);
         String sendCnt = redisUtils.getValue("discuss_" + id);
-        int cnt = Integer.parseInt(sendCnt);
+        int cnt = 0;
+        if(sendCnt != null){
+            cnt = Integer.parseInt(sendCnt);
+        }
         if(cnt >= 5){
             //短期发帖太多
             log.warn("创建新帖子失败，用户短时间内发帖太多");
@@ -196,5 +200,33 @@ public class DiscussController {
         log.info("正在移除帖子收藏，number：" + number + " id：" + id);
         return ResultUtils.getResult(new JSONObject(),discussService.deleteFavorDiscuss(number,id));
     }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "number",value = "评论编号",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "对评论点赞",notes = "repeatWrong：评论已被点赞（可能是重复请求） existWrong：评论不存在 success：成功")
+    @PostMapping("/like")
+    public Result<JSONObject> likeComment(@RequestParam("id") Long id,@RequestParam("number") Long number){
+        log.info("正在对评论点赞，id：" + id + " number：" + number);
+        return ResultUtils.getResult(new JSONObject(), discussService.likeComment(number,id));
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "number",value = "评论编号",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "取消评论点赞",notes = "repeatWrong：评论未被点赞（可能是重复请求） existWrong：评论不存在 success：成功")
+    @DeleteMapping("/like")
+    public Result<JSONObject> deleteLikeComment(@RequestParam("id") Long id,@RequestParam("number") Long number){
+        log.info("正在对评论取消点赞，id：" + id + " number：" + number);
+        return ResultUtils.getResult(new JSONObject(),discussService.deleteFavorDiscuss(number,id));
+    }
+
+
+
+
 
 }

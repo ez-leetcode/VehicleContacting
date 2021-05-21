@@ -23,4 +23,7 @@ public interface DiscussService {
 
     String deleteFavorDiscuss(Long number,Long id);
 
+    String likeComment(Long number,Long id);
+
+    String deleteLikeComment(Long number,Long id);
 }

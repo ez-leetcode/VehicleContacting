@@ -42,7 +42,7 @@ public class MyAuthenticationSuccessHandler implements AuthenticationSuccessHand
         com.vehiclecontacting.pojo.User user1 = userMapper.selectById(user.getUsername());
         if(user1.getIsFrozen() == 1){
             log.warn("登录失败，用户账号已被冻结，frozenDate：" + user1.getFrozenDate());
-            jsonObject.put("frozenDate",user1.getFrozenDate());
+            jsonObject.put("frozenDate",user1.getFrozenDate().toString());
             printWriter.write(ResultUtils.getResult(jsonObject,"frozenWrong").toString());
             printWriter.flush();
             printWriter.close();

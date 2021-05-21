@@ -4,18 +4,12 @@ package com.vehiclecontacting.service;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.vehiclecontacting.mapper.CommentMapper;
-import com.vehiclecontacting.mapper.DiscussMapper;
-import com.vehiclecontacting.mapper.FavorDiscussMapper;
-import com.vehiclecontacting.mapper.UserMapper;
+import com.vehiclecontacting.mapper.*;
 import com.vehiclecontacting.msg.CommentMsg;
 import com.vehiclecontacting.msg.CommentMsg1;
 import com.vehiclecontacting.msg.DiscussMsg;
 import com.vehiclecontacting.msg.OwnerCommentMsg;
-import com.vehiclecontacting.pojo.Comment;
-import com.vehiclecontacting.pojo.Discuss;
-import com.vehiclecontacting.pojo.FavorDiscuss;
-import com.vehiclecontacting.pojo.User;
+import com.vehiclecontacting.pojo.*;
 import com.vehiclecontacting.utils.OssUtils;
 import com.vehiclecontacting.utils.RedisUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +40,9 @@ public class DiscussServiceImpl implements DiscussService{
 
     @Autowired
     private FavorDiscussMapper favorDiscussMapper;
+
+    @Autowired
+    private CommentLikesMapper commentLikesMapper;
 
 
     @Override
@@ -395,5 +392,54 @@ public class DiscussServiceImpl implements DiscussService{
     }
 
 
+    @Override
+    public String likeComment(Long number, Long id) {
+        Comment comment = commentMapper.selectById(number);
+        if(comment == null){
+            log.error("点赞评论失败，评论不存在");
+            return "existWrong";
+        }
+        QueryWrapper<CommentLikes> wrapper = new QueryWrapper<>();
+        wrapper.eq("number",number)
+                .eq("id",id);
+        CommentLikes commentLikes = commentLikesMapper.selectOne(wrapper);
+        if(commentLikes != null){
+            log.error("点赞评论失败，评论已被点赞");
+            return "repeatWrong";
+        }
+        //点赞评论
+        commentLikesMapper.insert(new CommentLikes(number,id,null));
+        //点赞数加一
+        comment.setLikeCounts(comment.getLikeCounts() + 1);
+        commentMapper.updateById(comment);
+        //通知待完成
+        log.info("点赞评论成功");
+        return "success";
+    }
 
+
+    @Override
+    public String deleteLikeComment(Long number, Long id) {
+        Comment comment = commentMapper.selectById(number);
+        if(comment == null){
+            log.error("取消点赞失败，评论不存在");
+            return "existWrong";
+        }
+        QueryWrapper<CommentLikes> wrapper = new QueryWrapper<>();
+        wrapper.eq("number",number)
+                .eq("id",id);
+        CommentLikes commentLikes = commentLikesMapper.selectOne(wrapper);
+        if(commentLikes == null){
+            log.error("取消点赞失败，评论未被点赞");
+            return "repeatWrong";
+        }
+        //取消点赞评论
+        commentLikesMapper.delete(wrapper);
+        //点赞数减一
+        comment.setLikeCounts(comment.getLikeCounts() - 1);
+        commentMapper.updateById(comment);
+        //通知待完成
+        log.info("取消点赞评论成功");
+        return "success";
+    }
 }

@@ -38,7 +38,7 @@ public class UserController {
             @ApiImplicitParam(name = "code",value = "验证码",required = true,dataType = "string",paramType = "query"),
             @ApiImplicitParam(name = "password",value = "密码",required = true,dataType = "string",paramType = "query")
     })
-    @ApiOperation(value = "用户手机短信验证码注册",notes = "existWrong：验证码不存在或已过期 codeWrong：验证码错误 repeatWrong：该手机已被绑定 success：成功")
+    @ApiOperation(value = "用户手机短信验证码注册（暂时不用啦~）",notes = "existWrong：验证码不存在或已过期 codeWrong：验证码错误 repeatWrong：该手机已被绑定 success：成功")
     @PostMapping("/register")
     public Result<JSONObject> register(@RequestParam("phone") String phone,@RequestParam("code") String code,
                                        @RequestParam("password") String password){
@@ -77,7 +77,7 @@ public class UserController {
             @ApiImplicitParam(name = "oldPassword",value = "旧密码",required = true,dataType = "string",paramType = "query"),
             @ApiImplicitParam(name = "newPassword",value = "新密码",required = true,dataType = "string",paramType = "query")
     })
-    @ApiOperation(value = "用户改密码",notes = "existWrong：用户不存在 oldPasswordWrong：旧密码错误 codeExistWrong：验证码不存在或已过期 codeWrong：验证码错误 success：成功")
+    @ApiOperation(value = "用户改密码（暂时不用啦~）",notes = "existWrong：用户不存在 oldPasswordWrong：旧密码错误 codeExistWrong：验证码不存在或已过期 codeWrong：验证码错误 success：成功")
     @PostMapping("/changePassword")
     public Result<JSONObject> changePassword(@RequestParam("phone") String phone, @RequestParam("code") String code,
                                              @RequestParam("oldPassword") String oldPassword, @RequestParam("newPassword") String newPassword){
@@ -219,7 +219,7 @@ public class UserController {
             @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "keyword",value = "搜索关键词",dataType = "string",paramType = "query")
     })
-    @ApiOperation(value = "获取用户粉丝列表",notes = "success：成功 ")
+    @ApiOperation(value = "获取用户粉丝列表（还没做完）",notes = "success：成功 （返回json fansList（粉丝信息列表） pages（页面总数） counts（数据总量））")
     @GetMapping("/fans")
     public Result<JSONObject> getFans(@RequestParam("id") Long id,@RequestParam("cnt") Long cnt,
                                       @RequestParam("page") Long page,@RequestParam(value = "keyword",required = false) String keyword){
@@ -228,7 +228,18 @@ public class UserController {
     }
 
 
-
-
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "keyword",value = "搜索关键词",dataType = "string",paramType = "query")
+    })
+    @ApiOperation(value = "获取用户关注列表",notes = "success：成功 （返回json followList（关注信息列表） pages（页面总数） counts（数据总量））")
+    @GetMapping("/follow")
+    public Result<JSONObject> getFollow(@RequestParam("id") Long id,@RequestParam("cnt") Long cnt,
+                                        @RequestParam("page") Long page,@RequestParam(value = "keyword",required = false) String keyword) {
+        log.info("正在获取用户关注列表，id：" + id + " cnt：" + cnt + " page：" + page);
+        return ResultUtils.getResult(userService.getFollow(id,cnt,page,keyword),"success");
+    }
 
 }

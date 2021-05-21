@@ -30,4 +30,6 @@ public interface UserService {
     String removeFans(Long fromId,Long toId);
 
     JSONObject getFans(Long id,Long cnt,Long page,String keyword);
+
+    JSONObject getFollow(Long id,Long cnt,Long page,String keyword);
 }

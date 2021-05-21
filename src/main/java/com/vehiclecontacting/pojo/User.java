@@ -57,6 +57,12 @@ public class User {
     @ApiModelProperty(value = "个人帖子数")
     private Integer discussCounts;
 
+    @ApiModelProperty(value = "动态数")
+    private Integer momentCounts;
+
+    @ApiModelProperty(value = "vip")
+    private Integer vip;
+
     @ApiModelProperty(value = "是否被冻结")
     private Integer isFrozen;
 
