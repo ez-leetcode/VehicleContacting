@@ -3,6 +3,7 @@ package com.vehiclecontacting.controller;
 import com.alibaba.fastjson.JSONObject;
 import com.vehiclecontacting.pojo.Result;
 import com.vehiclecontacting.pojo.User;
+import com.vehiclecontacting.service.MailService;
 import com.vehiclecontacting.service.SmsService;
 import com.vehiclecontacting.service.UserService;
 import com.vehiclecontacting.utils.RedisUtils;
@@ -17,8 +18,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Random;
+import java.util.UUID;
 
-@Api(tags = "用户控制类",protocols = "https")
+@Api(tags = "用户管理类",protocols = "https")
 @Slf4j
 @RestController
 public class UserController {
@@ -28,6 +30,9 @@ public class UserController {
 
     @Autowired
     private SmsService smsService;
+
+    @Autowired
+    private MailService mailService;
 
     @Autowired
     private RedisUtils redisUtils;
@@ -155,14 +160,16 @@ public class UserController {
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "username",value = "用户昵称",dataType = "string",paramType = "query"),
-            @ApiImplicitParam(name = "sex",value = "性别",dataType = "string",paramType = "query")
+            @ApiImplicitParam(name = "sex",value = "性别",dataType = "string",paramType = "query"),
+            @ApiImplicitParam(name = "introduction",value = "自我介绍",dataType = "string",paramType = "query")
     })
     @ApiOperation(value = "修改用户信息（需要用户角色）",notes = "existWrong：用户不存在 repeatWrong：用户没有修改信息（可能是重复请求或者用户写相同的信息保存）success：成功")
     @PatchMapping("/user")
     public Result<JSONObject> patchUser(@RequestParam("id") Long id,@RequestParam(value = "username",required = false) String username,
-                                        @RequestParam(value = "sex",required = false) String sex){
+                                        @RequestParam(value = "sex",required = false) String sex,
+                                        @RequestParam(value = "introduction",required = false) String introduction){
         log.info("正在修改用户信息");
-        return ResultUtils.getResult(new JSONObject(),userService.patchUser(id,username,sex));
+        return ResultUtils.getResult(new JSONObject(),userService.patchUser(id,username,sex,introduction));
     }
 
 
@@ -174,10 +181,11 @@ public class UserController {
     @ApiOperation(value = "用户上传头像（需要用户角色）",notes = "existWrong：用户不存在 fileWrong：文件为空 typeWrong：上传格式错误 success：成功，成功后返回json：url（头像url）")
     @PostMapping("/userPhoto")
     public Result<JSONObject> uploadPhoto(@RequestParam("photo") MultipartFile file, @RequestParam("id") String id) {
+        String realId = id.substring(1,id.length() -1);
         JSONObject jsonObject = new JSONObject();
         Result<JSONObject> result;
-        log.info("正在上传用户头像，id：" + id);
-        String status = userService.uploadPhoto(file, id);
+        log.info("正在上传用户头像，id：" + realId);
+        String status = userService.uploadPhoto(file, realId);
         if(status.length() > 12){
             //存的是url
             jsonObject.put("url",status);
@@ -241,5 +249,83 @@ public class UserController {
         log.info("正在获取用户关注列表，id：" + id + " cnt：" + cnt + " page：" + page);
         return ResultUtils.getResult(userService.getFollow(id,cnt,page,keyword),"success");
     }
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "email",value = "邮箱",required = true,dataType = "string",paramType = "query"),
+            @ApiImplicitParam(name = "type",value = "哪种类型（1：绑定或改绑定验证码  其他待增加）",required = true,dataType = "int",paramType = "query")
+    })
+    @ApiOperation(value = "发送邮件验证码",notes = "repeatWrong：2小时内改绑太多次（10次） success：成功")
+    @PostMapping("/emailCode")
+    public Result<JSONObject> sendEmailCode(@RequestParam("email") String email,@RequestParam("type") Integer type){
+        log.info("正在发送邮件验证码，email：" + email + " type：" + type);
+        int cnt = 0;
+        String count = redisUtils.getValue("email" + "_" + email);
+        if(count != null){
+            cnt = Integer.parseInt(count);
+        }
+        cnt ++;
+        if(cnt > 10){
+            log.warn("发送验证码失败，用户改绑太频繁");
+            return ResultUtils.getResult(new JSONObject(),"repeatWrong");
+        }
+        String yzm = UUID.randomUUID().toString().substring(0,5);
+        log.info("已创建验证码：" + yzm + " 邮箱：" + email);
+        //验证码存入redis
+        redisUtils.saveByMinutesTime("email" + type + "_" + email,yzm,15);
+        //发送邮件
+        mailService.sendEmail(email,yzm,"绑定邮箱");
+        //次数加1
+        redisUtils.addKeyByTime("email" + "_" + email,2);
+        return ResultUtils.getResult(new JSONObject(),"success");
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "code",value = "邮箱验证码",required = true,dataType = "string",paramType = "query"),
+            @ApiImplicitParam(name = "newEmail",value = "新邮箱",required = true,dataType = "string",paramType = "query")
+    })
+    @ApiOperation(value = "用户绑定邮箱或者改绑定邮箱",notes = "repeatWrong：邮箱已被他人绑定 codeExistWrong：验证码不存在或已失效 existWrong：用户不存在 codeWrong：验证码错误 success：成功")
+    @PostMapping("/email")
+    public Result<JSONObject> changeEmail(@RequestParam("id") Long id,@RequestParam("code") String code,
+                                          @RequestParam("newEmail") String newEmail){
+        log.info("正在绑定邮箱，id：" + id + " code：" + code + " newEmail：" + newEmail);
+        return ResultUtils.getResult(new JSONObject(), userService.changeEmail(id,code,newEmail));
+    }
+
+
+    @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query")
+    @ApiOperation(value = "清空历史记录",notes = "repeatWrong：历史记录已被清空（可能是重复请求） success：成功")
+    @DeleteMapping("/allHistory")
+    public Result<JSONObject> clearHistory(@RequestParam("id") Long id){
+        log.info("正在清空历史记录，id：" + id);
+        return ResultUtils.getResult(new JSONObject(), userService.clearHistory(id));
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "获取历史记录列表（还在施工）",notes = "success：成功 （返回json historyList（历史记录列表） pages：（页面总数） counts：（数据总量））")
+    @GetMapping("/history")
+    public Result<JSONObject> getHistory(@RequestParam("id") Long id,@RequestParam("cnt") Long cnt,
+                                         @RequestParam("page") Long page){
+        log.info("正在获取用户历史记录，id：" + id + " cnt：" + cnt + " page：" + page);
+        return ResultUtils.getResult(userService.getHistory(id,cnt,page),"success");
+    }
+
+
+
+
+    /*
+    @ApiOperation(value = "多项选择删除历史记录",notes = "success：成功")
+    @DeleteMapping("/history")
+    public Result<JSONObject> deleteHistory(){
+
+    }
+     */
+
 
 }

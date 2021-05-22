@@ -4,8 +4,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.vehiclecontacting.config.RabbitmqConfig;
 import com.vehiclecontacting.mapper.FansMapper;
 import com.vehiclecontacting.mapper.RoleMapper;
+import com.vehiclecontacting.mapper.UserMapper;
 import com.vehiclecontacting.pojo.Fans;
 import com.vehiclecontacting.pojo.Role;
+import com.vehiclecontacting.pojo.User;
 import com.vehiclecontacting.service.SmsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -32,20 +34,11 @@ class DemoApplicationTests {
      */
 
 
-    @Autowired
-    private FansMapper fansMapper;
-
-    @Test
-    void testSend(){
-        Page<Fans> page = new Page<>(0,2);
-        List<Fans> fansList = fansMapper.getFans(page,1393953426531430402L);
-        System.out.println(page.getRecords());
-        System.out.println(page.getTotal());
-        System.out.println(fansList.toString());
-    }
-
-
-
+   @Test
+    void fun(){
+       String s = "lqg";
+       System.out.println(s.substring(1,s.length() - 1));
+   }
 
 
 }

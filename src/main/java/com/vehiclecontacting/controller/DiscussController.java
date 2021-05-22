@@ -16,7 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-@Api(tags = "帖子聊天控制类",protocols = "https")
+@Api(tags = "帖子聊天管理类",protocols = "https")
 @Slf4j
 @RestController
 public class DiscussController {
@@ -222,11 +222,8 @@ public class DiscussController {
     @DeleteMapping("/like")
     public Result<JSONObject> deleteLikeComment(@RequestParam("id") Long id,@RequestParam("number") Long number){
         log.info("正在对评论取消点赞，id：" + id + " number：" + number);
-        return ResultUtils.getResult(new JSONObject(),discussService.deleteFavorDiscuss(number,id));
+        return ResultUtils.getResult(new JSONObject(),discussService.deleteLikeComment(number,id));
     }
-
-
-
 
 
 }

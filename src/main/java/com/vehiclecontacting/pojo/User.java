@@ -48,6 +48,9 @@ public class User {
     @ApiModelProperty(value = "自我介绍")
     private String introduction;
 
+    @ApiModelProperty(value = "牌照数")
+    private Integer licenseCounts;
+
     @ApiModelProperty(value = "粉丝数",notes = "在查看个人信息中呈现(粉丝列表功能)")
     private Integer fansCounts;
 

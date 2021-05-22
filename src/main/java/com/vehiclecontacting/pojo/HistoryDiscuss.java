@@ -1,6 +1,5 @@
 package com.vehiclecontacting.pojo;
 
-
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -13,23 +12,30 @@ import lombok.ToString;
 
 import java.util.Date;
 
-@ApiModel(description = "收藏帖子类")
+@ApiModel(description = "历史帖子类")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-public class FavorDiscuss {
+public class HistoryDiscuss {
 
+    @ApiModelProperty("帖子编号")
     @JsonFormat(shape = JsonFormat.Shape.STRING)
-    @ApiModelProperty("收藏帖子编号")
     private Long number;
 
+    @ApiModelProperty("用户id")
     @JsonFormat(shape = JsonFormat.Shape.STRING)
-    @ApiModelProperty("收藏者id")
     private Long id;
 
-    @ApiModelProperty("收藏创建日期")
+    @ApiModelProperty("历史浏览时评论数")
+    private Integer commentCounts;
+
+    @ApiModelProperty("创建时间")
     @TableField(fill = FieldFill.INSERT)
     private Date createTime;
+
+    @ApiModelProperty("更新时间")
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private Date updateTime;
 
 }

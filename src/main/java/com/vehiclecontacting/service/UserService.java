@@ -15,7 +15,7 @@ public interface UserService {
 
     User getUser(Long id,String phone);
 
-    String patchUser(Long id,String username,String sex);
+    String patchUser(Long id,String username,String sex,String introduction);
 
     String loginByCode(String phone,String code);
 
@@ -32,4 +32,11 @@ public interface UserService {
     JSONObject getFans(Long id,Long cnt,Long page,String keyword);
 
     JSONObject getFollow(Long id,Long cnt,Long page,String keyword);
+
+    String changeEmail(Long id,String code,String newEmail);
+
+    String clearHistory(Long id);
+
+    JSONObject getHistory(Long id,Long page,Long cnt);
+
 }

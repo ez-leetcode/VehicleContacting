@@ -5,10 +5,12 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.vehiclecontacting.mapper.FansMapper;
+import com.vehiclecontacting.mapper.HistoryDiscussMapper;
 import com.vehiclecontacting.mapper.UserMapper;
 import com.vehiclecontacting.mapper.UserRoleMapper;
 import com.vehiclecontacting.msg.FansMsg;
 import com.vehiclecontacting.pojo.Fans;
+import com.vehiclecontacting.pojo.HistoryDiscuss;
 import com.vehiclecontacting.pojo.User;
 import com.vehiclecontacting.pojo.UserRole;
 import com.vehiclecontacting.utils.JwtUtils;
@@ -40,6 +42,9 @@ public class UserServiceImpl implements UserService{
 
     @Autowired
     private FansMapper fansMapper;
+
+    @Autowired
+    private HistoryDiscussMapper historyDiscussMapper;
 
     @Override
     public String register(String phone, String code,String password) {
@@ -95,7 +100,7 @@ public class UserServiceImpl implements UserService{
 
 
     @Override
-    public String patchUser(Long id, String username, String sex) {
+    public String patchUser(Long id, String username, String sex,String introduction) {
         User user = userMapper.selectById(id);
         if(user == null){
             log.error("修改用户信息失败，用户不存在：" + id);
@@ -105,6 +110,7 @@ public class UserServiceImpl implements UserService{
         user1.setUsername(username);
         user1.setSex(sex);
         user1.setId(id);
+        user1.setIntroduction(introduction);
         int result = userMapper.updateById(user1);
         if(result == 0){
             log.warn("修改用户信息出现问题，可能是重复请求：" + id);
@@ -394,5 +400,57 @@ public class UserServiceImpl implements UserService{
         log.info("获取关注列表成功");
         log.info(jsonObject.toString());
         return jsonObject;
+    }
+
+    @Override
+    public String changeEmail(Long id, String code,String newEmail) {
+        QueryWrapper<User> wrapper = new QueryWrapper<>();
+        wrapper.eq("email",newEmail);
+        User user1 = userMapper.selectOne(wrapper);
+        if(user1 != null){
+            log.error("修改邮箱失败，邮箱已被使用");
+            return "repeatWrong";
+        }
+        User user = userMapper.selectById(id);
+        if(user == null){
+            log.error("修改邮箱失败，用户不存在");
+            return "existWrong";
+        }
+        String redisCode = redisUtils.getValue("email1_" + newEmail);
+        if(redisCode == null){
+            log.error("修改邮箱失败，验证码不存在或已失效");
+            return "codeExistWrong";
+        }
+        if(!code.toLowerCase().equals(redisCode)){
+            log.error("修改邮箱失败，验证码错误");
+            return "codeWrong";
+        }
+        //验证码正确
+        user.setEmail(newEmail);
+        userMapper.updateById(user);
+        //一个验证码只能用一次
+        redisUtils.delete("email1_" + newEmail);
+        log.info("修改邮箱成功");
+        return "success";
+    }
+
+
+    @Override
+    public String clearHistory(Long id) {
+        QueryWrapper<HistoryDiscuss> wrapper = new QueryWrapper<>();
+        wrapper.eq("id",id);
+        int result = historyDiscussMapper.delete(wrapper);
+        if(result == 0){
+            log.warn("清空历史记录失败，可能是重复请求");
+            return "repeatWrong";
+        }
+        log.info("清空历史记录成功");
+        return "success";
+    }
+
+
+    @Override
+    public JSONObject getHistory(Long id, Long page, Long cnt) {
+        return null;
     }
 }
