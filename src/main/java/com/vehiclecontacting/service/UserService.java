@@ -39,4 +39,6 @@ public interface UserService {
 
     JSONObject getHistory(Long id,Long page,Long cnt);
 
+    Integer judgeFavor(Long fromId,Long toId);
+
 }

@@ -436,6 +436,30 @@ public class UserServiceImpl implements UserService{
 
 
     @Override
+    public Integer judgeFavor(Long fromId, Long toId) {
+        QueryWrapper<Fans> wrapper = new QueryWrapper<>();
+        wrapper.eq("from_id",fromId)
+                .eq("to_id",toId);
+        Fans fans = fansMapper.selectOne(wrapper);
+        if(fans == null){
+            log.info("用户未关注");
+            return 1;
+        }
+        //用户已关注情况下
+        QueryWrapper<Fans> wrapper1 = new QueryWrapper<>();
+        wrapper1.eq("from_id",toId)
+                .eq("to_id",fromId);
+        Fans fans1 = fansMapper.selectOne(wrapper);
+        if(fans1 == null){
+            log.info("用户已关注");
+            return 2;
+        }else{
+            log.info("用户已相互关注");
+            return 3;
+        }
+    }
+
+    @Override
     public String clearHistory(Long id) {
         QueryWrapper<HistoryDiscuss> wrapper = new QueryWrapper<>();
         wrapper.eq("id",id);

@@ -156,21 +156,27 @@ public class DiscussServiceImpl implements DiscussService{
 
 
     @Override
-    public JSONObject getDiscuss(Integer isOrderByTime, String keyword, Long cnt, Long page) {
+    public JSONObject getDiscuss(Integer isFollow, Integer isOrderByTime, String keyword, Long cnt, Long page, Long id) {
         JSONObject jsonObject = new JSONObject();
         QueryWrapper<Discuss> wrapper = new QueryWrapper<>();
         Page<Discuss> page1 = new Page<>(page,cnt);
-        if(keyword != null && !keyword.equals("")){
-            //有关键词
-            wrapper.like("title",keyword);
-        }
-        if(isOrderByTime == 1){
-            wrapper.orderByDesc("update_time");
+        List<Discuss> discussList;
+        if(isFollow == 1){
+            //找关注的列表
+            discussList = discussMapper.getFollowDiscuss(id,page1);
         }else{
-            wrapper.orderByDesc("like_counts");
+            if(keyword != null && !keyword.equals("")){
+                //有关键词
+                wrapper.like("title",keyword);
+            }
+            if(isOrderByTime == 1){
+                wrapper.orderByDesc("update_time");
+            }else{
+                wrapper.orderByDesc("like_counts");
+            }
+            discussMapper.selectPage(page1,wrapper);
+            discussList = page1.getRecords();
         }
-        discussMapper.selectPage(page1,wrapper);
-        List<Discuss> discussList = page1.getRecords();
         //待处理
         List<DiscussMsg> discussMsgList = new LinkedList<>();
         for(Discuss x:discussList){
@@ -186,6 +192,7 @@ public class DiscussServiceImpl implements DiscussService{
         log.info("查询帖子列表成功");
         return jsonObject;
     }
+
 
     @Override
     public String photoUpload(MultipartFile file) {

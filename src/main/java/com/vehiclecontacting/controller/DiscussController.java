@@ -2,7 +2,6 @@ package com.vehiclecontacting.controller;
 
 
 import com.alibaba.fastjson.JSONObject;
-import com.baomidou.mybatisplus.extension.api.R;
 import com.vehiclecontacting.pojo.Result;
 import com.vehiclecontacting.service.DiscussService;
 import com.vehiclecontacting.utils.RedisUtils;
@@ -87,17 +86,21 @@ public class DiscussController {
 
 
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "isOrderByTime",value = "是否按时间排序（0按时间，1按热度）",required = true,dataType = "int",paramType = "query"),
-            @ApiImplicitParam(name = "keyword",value = "搜索关键词",dataType = "string",paramType = "query"),
+            @ApiImplicitParam(name = "id",value = "用户id（为了游客能浏览，只有在关注页面要带上）",dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "isOrderByTime",value = "是否按时间排序（0按时间，1按热度）（浏览关注的时候不能按热度！！请填0）",required = true,dataType = "int",paramType = "query"),
+            @ApiImplicitParam(name = "keyword",value = "搜索关键词（获取关注时不支持搜索哦~）",dataType = "string",paramType = "query"),
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "isFollow",value = "是否是关注栏（0是推荐页面 1是关注页面）",required = true,dataType = "int",paramType = "query")
     })
     @ApiOperation(value = "获取主页面帖子浏览",notes = "success：成功（返回json discussList（主页帖子信息列表） pages（页面总数） counts（帖子总数））")
     @GetMapping("/discuss")
     public Result<JSONObject> getDiscuss(@RequestParam("isOrderByTime") Integer isOrderByTime,@RequestParam(value = "keyword",required = false) String keyword,
-                                         @RequestParam("cnt") Long cnt,@RequestParam("page") Long page){
-        log.info("正在获取主页面帖子浏览，isOrderByTime：" + isOrderByTime + " keyword：" + keyword + " cnt：" + cnt + " page：" + page);
-        return ResultUtils.getResult(discussService.getDiscuss(isOrderByTime,keyword,cnt,page),"success");
+                                         @RequestParam("cnt") Long cnt,@RequestParam("page") Long page,
+                                         @RequestParam("isFollow") Integer isFollow,
+                                         @RequestParam(value = "id",required = false) Long id){
+        log.info("正在获取主页面帖子浏览，isOrderByTime：" + isOrderByTime + " keyword：" + keyword + " cnt：" + cnt + " page：" + page + " isFollow：" + isFollow + " id：" + id);
+        return ResultUtils.getResult(discussService.getDiscuss(isFollow,isOrderByTime,keyword,cnt,page,id),"success");
     }
 
 /*

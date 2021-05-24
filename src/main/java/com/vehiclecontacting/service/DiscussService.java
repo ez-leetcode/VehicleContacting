@@ -11,7 +11,7 @@ public interface DiscussService {
 
     String addComment(Long id,Long number,String comments,Long fatherNumber,Long replyNumber);
 
-    JSONObject getDiscuss(Integer isOrderByTime,String keyword,Long cnt,Long page);
+    JSONObject getDiscuss(Integer isFollow,Integer isOrderByTime,String keyword,Long cnt,Long page,Long id);
 
     String photoUpload(MultipartFile file);
 
@@ -26,4 +26,5 @@ public interface DiscussService {
     String likeComment(Long number,Long id);
 
     String deleteLikeComment(Long number,Long id);
+
 }

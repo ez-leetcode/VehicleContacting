@@ -318,6 +318,21 @@ public class UserController {
 
 
 
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "查看者",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "被查看者",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "查看用户里判断关注状态",notes = "success：成功 （返回status 1：未关注 2：已关注 3：已相互关注）")
+    @PostMapping("/judgeFavor")
+    public Result<JSONObject> judgeFavor(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId){
+        log.info("正在判断用户关注状态，fromId：" + fromId + " toId：" + toId);
+        Integer status = userService.judgeFavor(fromId,toId);
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("status",String.valueOf(status));
+        return ResultUtils.getResult(jsonObject,"success");
+    }
+
+
 
     /*
     @ApiOperation(value = "多项选择删除历史记录",notes = "success：成功")
@@ -326,6 +341,7 @@ public class UserController {
 
     }
      */
+
 
 
 }

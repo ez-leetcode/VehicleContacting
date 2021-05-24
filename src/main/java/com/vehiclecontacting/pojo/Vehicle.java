@@ -48,6 +48,9 @@ public class Vehicle {
     @ApiModelProperty("是否审核通过")
     private Integer isPass;
 
+    @ApiModelProperty("退回原因")
+    private String backReason;
+
     @ApiModelProperty("伪删除")
     @TableLogic
     private Integer deleted;

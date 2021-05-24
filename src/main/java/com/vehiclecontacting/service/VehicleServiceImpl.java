@@ -42,6 +42,10 @@ public class VehicleServiceImpl implements VehicleService{
     }
 
 
+    //修改记得isPass=0
+
+
+
     @Override
     public String generateVehicle(Long id, Integer type, String license, String licensePhoto, String vehiclePhoto1, String vehiclePhoto2, String vehiclePhoto3, String description) {
         User user = userMapper.selectById(id);
@@ -59,7 +63,7 @@ public class VehicleServiceImpl implements VehicleService{
             return "repeatWrong";
         }
         //创建车辆信息
-        Vehicle vehicle1 = new Vehicle(license,id,type,licensePhoto,vehiclePhoto1,vehiclePhoto2,vehiclePhoto3,description,0,0,null,null,null);
+        Vehicle vehicle1 = new Vehicle(license,id,type,licensePhoto,vehiclePhoto1,vehiclePhoto2,vehiclePhoto3,description,0,null,0,null,null,null);
         vehicleMapper.insert(vehicle1);
         //用户车辆信息加一
         user.setLicenseCounts(user.getLicenseCounts() + 1);
