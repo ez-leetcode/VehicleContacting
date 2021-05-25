@@ -44,6 +44,9 @@ public class DiscussServiceImpl implements DiscussService{
     @Autowired
     private CommentLikesMapper commentLikesMapper;
 
+    @Autowired
+    private LikeDiscussMapper likeDiscussMapper;
+
 
     @Override
     public String generateDiscuss(Long id, String title, String description, String photo1, String photo2, String photo3) {
@@ -449,4 +452,76 @@ public class DiscussServiceImpl implements DiscussService{
         log.info("取消点赞评论成功");
         return "success";
     }
+
+    @Override
+    public JSONObject judgeLikeAndFavor(Long number, Long id) {
+        JSONObject jsonObject = new JSONObject();
+        //先获取收藏相关信息
+        QueryWrapper<FavorDiscuss> wrapper = new QueryWrapper<>();
+        wrapper.eq("id",id)
+                .eq("number",number);
+        FavorDiscuss favorDiscuss = favorDiscussMapper.selectOne(wrapper);
+        if(favorDiscuss == null){
+            //没有收藏
+            jsonObject.put("isFavor",0);
+        }else{
+            //已收藏
+            jsonObject.put("isFavor",1);
+        }
+        //获取点赞相关信息
+        //待完成
+        QueryWrapper<LikeDiscuss> wrapper1 = new QueryWrapper<>();
+        wrapper1.eq("id",id)
+                .eq("number",number);
+        LikeDiscuss likeDiscuss = likeDiscussMapper.selectOne(wrapper1);
+        if(likeDiscuss == null){
+            //没有点赞
+            jsonObject.put("isLike",0);
+        }else{
+            //已点赞
+            jsonObject.put("isLike",1);
+        }
+        log.info("获取点赞和收藏相关信息成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
+
+    @Override
+    public String likeDiscuss(Long number, Long id) {
+        Discuss discuss = discussMapper.selectById(number);
+        if(discuss == null){
+            log.error("点赞帖子失败，帖子不存在");
+            return "existWrong";
+        }
+        //点赞
+        likeDiscussMapper.insert(new LikeDiscuss(number,id,null));
+        //加点赞数
+        discuss.setLikeCounts(discuss.getLikeCounts() + 1);
+        discussMapper.updateById(discuss);
+        //推送待完成
+        log.info("点赞帖子成功");
+        return "success";
+    }
+
+    @Override
+    public String dislikeDiscuss(Long number, Long id) {
+        Discuss discuss = discussMapper.selectById(number);
+        if(discuss == null){
+            log.error("取消点赞失败，帖子不存在");
+            return "existWrong";
+        }
+        //取消点赞
+        QueryWrapper<LikeDiscuss> wrapper = new QueryWrapper<>();
+        wrapper.eq("id",id)
+                .eq("number",number);
+        likeDiscussMapper.delete(wrapper);
+        //减少点赞数
+        discuss.setLikeCounts(discuss.getLikeCounts() - 1);
+        discussMapper.updateById(discuss);
+        //推送待完成
+        log.info("取消点赞帖子成功");
+        return "success";
+    }
+
 }

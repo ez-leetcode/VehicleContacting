@@ -55,4 +55,28 @@ public class AdministratorController {
     }
 
 
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "被封禁用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "minutes",value = "封禁时间（按分钟为单位吧）",required = true,dataType = "int",paramType = "query")
+    })
+    @ApiOperation(value = "封禁用户",notes = "existWrong：用户不存在 success：成功")
+    @PostMapping("/frozeUser")
+    public Result<JSONObject> frozeUser(@RequestParam("id") Long id,@RequestParam("minutes") Integer minutes){
+        log.info("正在封禁用户，id：" + id + " minutes：" + minutes);
+        return ResultUtils.getResult(new JSONObject(),administratorService.frozeUser(id,minutes));
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "被解封人的id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "解封用户",notes = "existWrong：用户不存在 repeatWrong：用户已被解封（可能是重复请求） success：成功")
+    @PostMapping("/reopenUser")
+    private Result<JSONObject> reopenUser(@RequestParam("id") Long id){
+        log.info("正在解封用户，id：" + id);
+        return ResultUtils.getResult(new JSONObject(),administratorService.reopenUser(id));
+    }
+
+
+
 }

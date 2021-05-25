@@ -10,14 +10,12 @@ import com.vehiclecontacting.msg.VehicleJudgeMsg;
 import com.vehiclecontacting.msg.VehicleMsg;
 import com.vehiclecontacting.pojo.User;
 import com.vehiclecontacting.pojo.Vehicle;
+import com.vehiclecontacting.utils.RedisUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -32,7 +30,8 @@ public class AdministratorServiceImpl implements AdministratorService{
     @Autowired
     private MailService mailService;
 
-
+    @Autowired
+    private RedisUtils redisUtils;
 
     @Override
     public String judgeVehicle(String license, Integer isPass, String reason) {
@@ -87,6 +86,47 @@ public class AdministratorServiceImpl implements AdministratorService{
         log.info("获取待审车辆信息成功");
         log.info(jsonObject.toString());
         return jsonObject;
+    }
+
+    @Override
+    public String frozeUser(Long id, Integer minutes) {
+        User user = userMapper.selectById(id);
+        if(user == null){
+            log.error("冻结用户失败，用户不存在");
+            return "existWrong";
+        }
+        Date date = new Date();
+        Calendar calendar = new GregorianCalendar();
+        calendar.setTime(date);
+        calendar.add(calendar.MINUTE,minutes);
+        //当前时间推后minutes分钟
+        user.setFrozenDate(calendar.getTime());
+        user.setIsFrozen(1);
+        userMapper.updateById(user);
+        //发邮件通知待完成
+        //删掉token，强制下线
+        redisUtils.delete(id.toString());
+        return "success";
+    }
+
+    @Override
+    public String reopenUser(Long id) {
+        User user = userMapper.selectById(id);
+        if(user == null){
+            log.error("解封用户失败，用户不存在");
+            return "existWrong";
+        }
+        if(user.getFrozenDate().before(new Date())){
+            log.warn("解封用户失败，用户已被解封");
+            return "repeatWrong";
+        }
+        //先修改冻结信息
+        user.setIsFrozen(0);
+        user.setFrozenDate(new Date());
+        userMapper.updateById(user);
+        //发邮件通知待完成
+        log.info("解封用户成功");
+        return "success";
     }
 
 }

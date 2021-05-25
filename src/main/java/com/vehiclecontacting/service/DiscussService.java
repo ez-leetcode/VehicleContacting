@@ -27,4 +27,10 @@ public interface DiscussService {
 
     String deleteLikeComment(Long number,Long id);
 
+    JSONObject judgeLikeAndFavor(Long number,Long id);
+
+    String likeDiscuss(Long number,Long id);
+
+    String dislikeDiscuss(Long number,Long id);
+
 }

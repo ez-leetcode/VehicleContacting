@@ -44,8 +44,14 @@ public class HistoryDiscussMsg {
     @ApiModelProperty("新增评论量")
     private Integer newComments;
 
+    @ApiModelProperty("新增收藏量")
+    private Integer newFavorComments;
+
     @ApiModelProperty("收藏量")
     private Integer favorComments;
+
+    @ApiModelProperty("评论量")
+    private Integer commentCounts;
 
     @ApiModelProperty("最近浏览时间")
     private Date updateTime;

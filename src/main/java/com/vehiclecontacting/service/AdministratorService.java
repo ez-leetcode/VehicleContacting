@@ -8,4 +8,7 @@ public interface AdministratorService {
 
     JSONObject getVehicleList(Long cnt,Long page,String keyword);
 
+    String frozeUser(Long id, Integer minutes);
+
+    String reopenUser(Long id);
 }

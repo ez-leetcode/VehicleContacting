@@ -4,15 +4,10 @@ package com.vehiclecontacting.service;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.vehiclecontacting.mapper.FansMapper;
-import com.vehiclecontacting.mapper.HistoryDiscussMapper;
-import com.vehiclecontacting.mapper.UserMapper;
-import com.vehiclecontacting.mapper.UserRoleMapper;
+import com.vehiclecontacting.mapper.*;
 import com.vehiclecontacting.msg.FansMsg;
-import com.vehiclecontacting.pojo.Fans;
-import com.vehiclecontacting.pojo.HistoryDiscuss;
-import com.vehiclecontacting.pojo.User;
-import com.vehiclecontacting.pojo.UserRole;
+import com.vehiclecontacting.msg.HistoryDiscussMsg;
+import com.vehiclecontacting.pojo.*;
 import com.vehiclecontacting.utils.JwtUtils;
 import com.vehiclecontacting.utils.OssUtils;
 import com.vehiclecontacting.utils.RedisUtils;
@@ -45,6 +40,15 @@ public class UserServiceImpl implements UserService{
 
     @Autowired
     private HistoryDiscussMapper historyDiscussMapper;
+
+    @Autowired
+    private ComplainUserMapper complainUserMapper;
+
+    @Autowired
+    private FeedbackMapper feedbackMapper;
+
+    @Autowired
+    private DiscussMapper discussMapper;
 
     @Override
     public String register(String phone, String code,String password) {
@@ -342,6 +346,7 @@ public class UserServiceImpl implements UserService{
             return "repeatWrong";
         }
         //移除关注
+        fansMapper.delete(wrapper);
         user.setFollowCounts(user.getFollowCounts() - 1);
         user1.setFansCounts(user1.getFansCounts() - 1);
         userMapper.updateById(user);
@@ -434,7 +439,6 @@ public class UserServiceImpl implements UserService{
         return "success";
     }
 
-
     @Override
     public Integer judgeFavor(Long fromId, Long toId) {
         QueryWrapper<Fans> wrapper = new QueryWrapper<>();
@@ -474,7 +478,87 @@ public class UserServiceImpl implements UserService{
 
 
     @Override
-    public JSONObject getHistory(Long id, Long page, Long cnt) {
-        return null;
+    public String complainUser(Long fromId, Long toId, String title, String description, String complainPhoto1, String complainPhoto2, String complainPhoto3) {
+        User user = userMapper.selectById(toId);
+        if(user == null){
+            //被举报用户不存在
+            log.error("举报失败，被举报用户不存在");
+            return "existWrong";
+        }
+        String complainCounts = redisUtils.getValue("complain_" + fromId);
+        if(complainCounts != null){
+            int cnt = Integer.parseInt(complainCounts);
+            //最多24小时内举报5次
+            if(cnt > 5){
+                log.error("举报用户失败，用户24小时内举报次数过多");
+                return "repeatWrong";
+            }
+        }
+        //添加举报内容
+        ComplainUser complainUser = new ComplainUser(fromId,toId,title,description,complainPhoto1,complainPhoto2,complainPhoto3,null);
+        complainUserMapper.insert(complainUser);
+        //加被举报人被举报次数
+        user.setComplainCounts(user.getComplainCounts() + 1);
+        userMapper.updateById(user);
+        //存入redis举报次数
+        redisUtils.addKeyByTime("complain_" + fromId ,24);
+        return "success";
     }
+
+
+
+    @Override
+    public String uploadComplain(MultipartFile file, Long id) {
+        String url = OssUtils.uploadPhoto(file,"complainPhoto");
+        //打印下日志
+        if(url.length() < 12){
+            log.error("上传投诉图片失败");
+        }else{
+            log.info("上传投诉图片成功，url：" + url);
+        }
+        return url;
+    }
+
+
+    @Override
+    public JSONObject getHistory(Long id, Long page, Long cnt) {
+        JSONObject jsonObject = new JSONObject();
+        QueryWrapper<HistoryDiscuss> wrapper = new QueryWrapper<>();
+        wrapper.eq("id",id)
+                .orderByDesc("update_time");
+        Page<HistoryDiscuss> page1 = new Page<>(page,cnt);
+        historyDiscussMapper.selectPage(page1,wrapper);
+        List<HistoryDiscuss> historyDiscussList = page1.getRecords();
+        List<HistoryDiscussMsg> historyDiscussMsgList = new LinkedList<>();
+        for(HistoryDiscuss x:historyDiscussList){
+            //给数据
+            User user = userMapper.selectById(x.getId());
+            Discuss discuss = discussMapper.selectById(x.getId());
+            historyDiscussMsgList.add(new HistoryDiscussMsg(x.getNumber(),x.getId(),user.getUsername(),user.getPhoto(),discuss.getTitle(),discuss.getDescription(),
+                    discuss.getPhoto1(),discuss.getCommentCounts() - x.getCommentCounts(),discuss.getFavorCounts() - x.getFavorCounts(),discuss.getFavorCounts(),discuss.getCommentCounts(),x.getUpdateTime()));
+        }
+        jsonObject.put("historyList",historyDiscussMsgList);
+        jsonObject.put("pages",page1.getPages());
+        jsonObject.put("counts",page1.getTotal());
+        log.info("获取历史记录成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
+
+    @Override
+    public String addFeedback(Long id, String title, String description) {
+        String feedbackCounts = redisUtils.getValue("feedback_" + id);
+        if(feedbackCounts != null){
+            log.error("用户反馈失败，用户24小时内反馈次数过多");
+            return "repeatWrong";
+        }
+        //添加反馈
+        feedbackMapper.insert(new Feedback(id,title,description,0,null));
+        //存入redis反馈次数
+        redisUtils.addKeyByTime("feedback_" + id,24);
+        log.info("添加反馈成功");
+        return "success";
+    }
+
 }

@@ -63,6 +63,9 @@ public class User {
     @ApiModelProperty(value = "动态数")
     private Integer momentCounts;
 
+    @ApiModelProperty(value = "被举报次数")
+    private Integer complainCounts;
+
     @ApiModelProperty(value = "vip")
     private Integer vip;
 

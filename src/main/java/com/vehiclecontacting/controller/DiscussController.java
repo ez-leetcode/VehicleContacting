@@ -49,7 +49,8 @@ public class DiscussController {
         if(sendCnt != null){
             cnt = Integer.parseInt(sendCnt);
         }
-        if(cnt >= 5){
+        //记得改回去
+        if(cnt >= 10){
             //短期发帖太多
             log.warn("创建新帖子失败，用户短时间内发帖太多");
             return ResultUtils.getResult(new JSONObject(),"repeatWrong");
@@ -226,6 +227,41 @@ public class DiscussController {
     public Result<JSONObject> deleteLikeComment(@RequestParam("id") Long id,@RequestParam("number") Long number){
         log.info("正在对评论取消点赞，id：" + id + " number：" + number);
         return ResultUtils.getResult(new JSONObject(),discussService.deleteLikeComment(number,id));
+    }
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "判断用户是否点赞和收藏帖子",notes = "success：成功 （返回json isLike（是否点赞） isFavor（是否收藏））")
+    @PostMapping("/likeAndFavor")
+    public Result<JSONObject> judgeLikeAndFavor(@RequestParam("id") Long id,@RequestParam("number") Long number){
+        log.info("正在判断用户是否点赞和收藏帖子，id：" + id + " number：" + number);
+        return ResultUtils.getResult(discussService.judgeLikeAndFavor(number,id),"success");
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "点赞帖子",notes = "existWrong：帖子不存在 success：成功")
+    @PostMapping("/likeDiscuss")
+    public Result<JSONObject> likeDiscuss(@RequestParam("id") Long id,@RequestParam("number") Long number){
+        log.info("正在点赞帖子，id：" + id + " number：" + number);
+        return ResultUtils.getResult(new JSONObject(),discussService.likeDiscuss(number,id));
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "取消点赞帖子",notes = "existWrong：帖子不存在 success：成功")
+    @DeleteMapping("/likeDiscuss")
+    public Result<JSONObject> dislikeDiscuss(@RequestParam("id") Long id,@RequestParam("number") Long number){
+        log.info("正在取消点赞帖子，id：" + id + " number：" + number);
+        return ResultUtils.getResult(new JSONObject(),discussService.dislikeDiscuss(number,id));
     }
 
 

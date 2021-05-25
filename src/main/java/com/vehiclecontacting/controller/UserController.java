@@ -178,7 +178,7 @@ public class UserController {
             @ApiImplicitParam(name = "photo",value = "头像文件",required = true,dataType = "file",paramType = "body"),
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "string",paramType = "query")
     })
-    @ApiOperation(value = "用户上传头像（需要用户角色）",notes = "existWrong：用户不存在 fileWrong：文件为空 typeWrong：上传格式错误 success：成功，成功后返回json：url（头像url）")
+    @ApiOperation(value = "用户上传头像（需要用户角色）",notes = "existWrong：用户不存在 fileWrong：文件为空 typeWrong：上传格式错误 success：成功 成功后返回json：url（头像url）")
     @PostMapping("/userPhoto")
     public Result<JSONObject> uploadPhoto(@RequestParam("photo") MultipartFile file, @RequestParam("id") String id) {
         String realId = id.substring(1,id.length() -1);
@@ -227,7 +227,7 @@ public class UserController {
             @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "keyword",value = "搜索关键词",dataType = "string",paramType = "query")
     })
-    @ApiOperation(value = "获取用户粉丝列表（还没做完）",notes = "success：成功 （返回json fansList（粉丝信息列表） pages（页面总数） counts（数据总量））")
+    @ApiOperation(value = "获取用户粉丝列表",notes = "success：成功 （返回json fansList（粉丝信息列表） pages（页面总数） counts（数据总量））")
     @GetMapping("/fans")
     public Result<JSONObject> getFans(@RequestParam("id") Long id,@RequestParam("cnt") Long cnt,
                                       @RequestParam("page") Long page,@RequestParam(value = "keyword",required = false) String keyword){
@@ -328,9 +328,75 @@ public class UserController {
         log.info("正在判断用户关注状态，fromId：" + fromId + " toId：" + toId);
         Integer status = userService.judgeFavor(fromId,toId);
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("status",String.valueOf(status));
+        jsonObject.put("status",status);
         return ResultUtils.getResult(jsonObject,"success");
     }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "举报人id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "被举报人id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "title",value = "标题",required = true,dataType = "string",paramType = "query"),
+            @ApiImplicitParam(name = "description",value = "描述",required = true,dataType = "string",paramType = "query"),
+            @ApiImplicitParam(name = "complainPhoto1",value = "举报描述图片1",dataType = "string",paramType = "query"),
+            @ApiImplicitParam(name = "complainPhoto2",value = "举报描述图片2",dataType = "string",paramType = "query"),
+            @ApiImplicitParam(name = "complainPhoto3",value = "举报描述图片3",dataType = "string",paramType = "query")
+    })
+    @ApiOperation(value = "举报用户",notes = "repeatWrong：该用户举报人太多次，不给举报了（24小时内最多5次） success：成功 ")
+    @PostMapping("/complain")
+    public Result<JSONObject> complainUser(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId,
+                                           @RequestParam("title") String title,@RequestParam("description") String description,
+                                           @RequestParam(value = "complainPhoto1",required = false) String complainPhoto1,
+                                           @RequestParam(value = "complainPhoto2",required = false) String complainPhoto2,
+                                           @RequestParam(value = "complainPhoto3",required = false) String complainPhoto3){
+        log.info("正在举报用户，fromId：" + fromId + " toId：" + toId + " title：" + title + " description：" + description);
+        return ResultUtils.getResult(new JSONObject(),userService.complainUser(fromId,toId,title,description,complainPhoto1,complainPhoto2,complainPhoto3));
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "photo",value = "上传的图片",required = true,dataType = "file",paramType = "body")
+    })
+    @ApiOperation(value = "上传举报图片",notes = "fileWrong：文件为空 typeWrong：上传格式错误 success：成功 （返回json url（图片路径））")
+    @PostMapping("/complainPhoto")
+    public Result<JSONObject> complainPhotoUpload(@RequestParam("photo") MultipartFile file,@RequestParam("id") Long id){
+        log.info("用户正在上传举报图片，id：" + id);
+        String url = userService.uploadComplain(file,id);
+        if(url.length() < 12){
+            return ResultUtils.getResult(new JSONObject(),url);
+        }
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("url",url);
+        return ResultUtils.getResult(jsonObject,"success");
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "title",value = "标题",required = true,dataType = "string",paramType = "query"),
+            @ApiImplicitParam(name = "description",value = "具体内容",required = true,dataType = "string",paramType = "query")
+    })
+    @ApiOperation(value = "添加用户反馈",notes = "repeatWrong：用户24小时内反馈超过5次 success：成功")
+    @PostMapping("/feedback")
+    public Result<JSONObject> addFeedback(@RequestParam("id") Long id,@RequestParam("title") String title,
+                                          @RequestParam("description") String description) {
+        log.info("正在添加用户反馈，id：" + id + " title：" + title + " description：" + description);
+        return ResultUtils.getResult(new JSONObject(), userService.addFeedback(id, title, description));
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "批量删除历史记录",notes = "existWrong：历史记录不存在（可能是重复请求） success：成功")
+    @DeleteMapping("/history")
+    public Result<JSONObject> deleteHistory(){
+        return null;
+    }
+
+
+
 
 
 
