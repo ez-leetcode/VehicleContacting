@@ -16,39 +16,31 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.util.List;
+import java.util.*;
 
 @SpringBootTest
 class DemoApplicationTests {
 
-    @Autowired
-    private RabbitTemplate rabbitTemplate;
 
-
-    @Autowired
-    private DiscussMapper discussMapper;
-
-    /*
-    @Autowired
-    private SmsService smsService;
-
-    @Test
-    void sendSms(){
-        smsService.sendSms("17605024713","52678",1);
-    }
-     */
     @Autowired
     private FansMapper fansMapper;
 
-
-   @Test
-    void fun(){
-       Page<Discuss> page = new Page<>(0,2);
-       List<Discuss> discussList = discussMapper.getFollowDiscuss(1393953426531430402L,page);
-       System.out.println(discussList.toString());
-       System.out.println(page.getTotal());
-       System.out.println(page.getPages());
-   }
+    @Test
+    void  ss(){
+        Map<Long,Integer> map = new HashMap<>();
+        map.put(12L,15);
+        map.put(11L,13);
+        map.put(18L,11);
+        map.put(22L,55);
+        List<Map.Entry<Long,Integer>> list = new ArrayList<>(map.entrySet());
+        list.sort((Comparator.comparingInt(Map.Entry::getValue)));
+        Long hotDiscuss1 = list.get(map.size() - 1).getKey();
+        Long hotDiscuss2 = list.get(map.size() - 2).getKey();
+        Long hotDiscuss3 = list.get(map.size() - 3).getKey();
+        System.out.println(hotDiscuss1);
+        System.out.println(hotDiscuss2);
+        System.out.println(hotDiscuss3);
+    }
 
 
 }

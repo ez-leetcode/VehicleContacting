@@ -265,4 +265,13 @@ public class DiscussController {
     }
 
 
+    @ApiOperation(value = "获取当前热点帖子",notes = "按照8小时内权重综合排序 浏览量：1 点赞：5 收藏：10 取消收藏/点赞等等会降低权重" +
+            "如果找不到合适的，比如刚开服等情况，就给当前浏览量最多的几个 success：返回json hotDiscuss（有三个帖子的编号 图片 标题）")
+    @GetMapping("/hotDiscuss")
+    public Result<JSONObject> getHotDiscuss(){
+        log.info("正在获取热点帖子");
+        return ResultUtils.getResult(discussService.getHotDiscuss(),"success");
+    }
+
+
 }

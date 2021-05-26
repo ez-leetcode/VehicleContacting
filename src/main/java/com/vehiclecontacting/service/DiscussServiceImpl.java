@@ -5,10 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.vehiclecontacting.mapper.*;
-import com.vehiclecontacting.msg.CommentMsg;
-import com.vehiclecontacting.msg.CommentMsg1;
-import com.vehiclecontacting.msg.DiscussMsg;
-import com.vehiclecontacting.msg.OwnerCommentMsg;
+import com.vehiclecontacting.msg.*;
 import com.vehiclecontacting.pojo.*;
 import com.vehiclecontacting.utils.OssUtils;
 import com.vehiclecontacting.utils.RedisUtils;
@@ -24,7 +21,6 @@ import java.util.List;
 @Service
 @Slf4j
 public class DiscussServiceImpl implements DiscussService{
-
 
     @Autowired
     private RedisUtils redisUtils;
@@ -47,6 +43,11 @@ public class DiscussServiceImpl implements DiscussService{
     @Autowired
     private LikeDiscussMapper likeDiscussMapper;
 
+    public static Long hotDiscussNumber1 = 0L;
+
+    public static Long hotDiscussNumber2 = 0L;
+
+    public static Long hotDiscussNumber3 = 0L;
 
     @Override
     public String generateDiscuss(Long id, String title, String description, String photo1, String photo2, String photo3) {
@@ -297,6 +298,7 @@ public class DiscussServiceImpl implements DiscussService{
         log.info("获取帖子评论列表成功");
         log.info(jsonObject.toString());
         //加浏览量待完成
+        redisUtils.addKeyByTime("scan_" + number,24);
         return jsonObject;
     }
 
@@ -370,6 +372,8 @@ public class DiscussServiceImpl implements DiscussService{
         //更新帖子收藏数
         discuss.setFavorCounts(discuss.getFavorCounts() + 1);
         discussMapper.updateById(discuss);
+        //帖子收藏缓存
+        redisUtils.addKeyByTime("cntFavor_" + number,24);
         //通知待完成
         log.info("收藏帖子成功");
         return "success";
@@ -397,6 +401,8 @@ public class DiscussServiceImpl implements DiscussService{
         //修改收藏数
         discuss.setFavorCounts(discuss.getFavorCounts() - 1);
         discussMapper.updateById(discuss);
+        //移除收藏缓存
+        redisUtils.subKeyByTime("cntFavor_" + number,24);
         log.info("移除帖子收藏成功");
         return "success";
     }
@@ -499,6 +505,8 @@ public class DiscussServiceImpl implements DiscussService{
         //加点赞数
         discuss.setLikeCounts(discuss.getLikeCounts() + 1);
         discussMapper.updateById(discuss);
+        //点赞缓存
+        redisUtils.addKeyByTime("cntLike_" + number,24);
         //推送待完成
         log.info("点赞帖子成功");
         return "success";
@@ -519,9 +527,85 @@ public class DiscussServiceImpl implements DiscussService{
         //减少点赞数
         discuss.setLikeCounts(discuss.getLikeCounts() - 1);
         discussMapper.updateById(discuss);
+        //取消点赞缓存
+        redisUtils.subKeyByTime("cntLike_" + number,24);
         //推送待完成
         log.info("取消点赞帖子成功");
         return "success";
     }
+
+
+    @Override
+    public JSONObject getHotDiscuss() {
+        JSONObject jsonObject = new JSONObject();
+        log.info("热帖1：" + hotDiscussNumber1);
+        log.info("热帖2：" + hotDiscussNumber2);
+        log.info("热帖3：" + hotDiscussNumber3);
+        int status = 0;
+        if(hotDiscussNumber1 == 0L){
+            status ++;
+        }
+        if(hotDiscussNumber2 == 0L){
+            status ++;
+        }
+        if(hotDiscussNumber3 == 0L){
+            status ++;
+        }
+        if(status == 0){
+            //都有图片
+            log.info("都有图片呢~");
+            Discuss discuss = discussMapper.selectById(hotDiscussNumber1);
+            Discuss discuss1 = discussMapper.selectById(hotDiscussNumber2);
+            Discuss discuss2 = discussMapper.selectById(hotDiscussNumber3);
+            HotDiscussMsg hotDiscussMsg = new HotDiscussMsg(discuss.getNumber(),discuss.getPhoto1(),discuss.getTitle(),discuss1.getNumber(),
+                    discuss1.getPhoto1(),discuss1.getTitle(),discuss2.getNumber(),discuss2.getPhoto1(),discuss2.getTitle());
+            jsonObject.put("hotDiscuss",hotDiscussMsg);
+        }else if(status == 1){
+            //第三个没图
+            Discuss discuss = discussMapper.selectById(hotDiscussNumber1);
+            Discuss discuss1 = discussMapper.selectById(hotDiscussNumber2);
+            QueryWrapper<Discuss> wrapper = new QueryWrapper<>();
+            wrapper.orderByDesc("scan_counts");
+            log.info("正在找第三个的图片");
+            List<Discuss> discussList = discussMapper.selectList(wrapper);
+            Discuss discuss2 = discussList.get(0);
+            HotDiscussMsg hotDiscussMsg = new HotDiscussMsg(discuss.getNumber(),discuss.getPhoto1(),discuss.getTitle(),discuss1.getNumber(),
+                    discuss1.getPhoto1(),discuss1.getTitle(),discuss2.getNumber(),discuss2.getPhoto1(),discuss2.getTitle());
+            jsonObject.put("hotDiscuss",hotDiscussMsg);
+        }else if(status == 2){
+            //第二和第三没图
+            Discuss discuss = discussMapper.selectById(hotDiscussNumber1);
+            QueryWrapper<Discuss> wrapper = new QueryWrapper<>();
+            wrapper.orderByDesc("scan_counts");
+            log.info("正在找第二和第三的图片");
+            List<Discuss> discussList = discussMapper.selectList(wrapper);
+            Discuss discuss1 = discussList.get(0);
+            Discuss discuss2 = discussList.get(1);
+            HotDiscussMsg hotDiscussMsg = new HotDiscussMsg(discuss.getNumber(),discuss.getPhoto1(),discuss.getTitle(),discuss1.getNumber(),
+                    discuss1.getPhoto1(),discuss1.getTitle(),discuss2.getNumber(),discuss2.getPhoto1(),discuss2.getTitle());
+            jsonObject.put("hotDiscuss",hotDiscussMsg);
+        }else{
+            //都没图
+            QueryWrapper<Discuss> wrapper = new QueryWrapper<>();
+            wrapper.orderByDesc("scan_counts");
+            log.info("正在找三张图");
+            List<Discuss> discussList = discussMapper.selectList(wrapper);
+            Discuss discuss = discussList.get(0);
+            Discuss discuss1 = discussList.get(1);
+            Discuss discuss2 = discussList.get(2);
+            HotDiscussMsg hotDiscussMsg = new HotDiscussMsg(discuss.getNumber(),discuss.getPhoto1(),discuss.getTitle(),discuss1.getNumber(),
+                    discuss1.getPhoto1(),discuss1.getTitle(),discuss2.getNumber(),discuss2.getPhoto1(),discuss2.getTitle());
+            jsonObject.put("hotDiscuss",hotDiscussMsg);
+        }
+        log.info("获取主页面图片信息成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
+
+
+
+
+
 
 }

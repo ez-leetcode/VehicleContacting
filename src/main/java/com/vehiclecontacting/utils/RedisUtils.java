@@ -13,9 +13,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Setter
@@ -44,6 +42,21 @@ public class RedisUtils {
         //存入redis
         redisTemplate.opsForValue().set(key,String.valueOf(cnt),second,TimeUnit.SECONDS);
     }
+
+    //次数减1
+    public void subKeyByTime(String key,int hours){
+        //这里不会雪崩就不加随机时间了
+        String value = redisTemplate.opsForValue().get(key);
+        int cnt = 0;
+        if(value != null){
+            cnt = Integer.parseInt(value);
+        }
+        cnt --;
+        //存入redis
+        redisTemplate.opsForValue().set(key,String.valueOf(cnt),hours * 3600L,TimeUnit.SECONDS);
+    }
+
+
 
 
     //存带有过期时间的key-value
@@ -117,5 +130,67 @@ public class RedisUtils {
          */
         return new UsernamePasswordAuthenticationToken(new org.springframework.security.core.userdetails.User(username,user.getPassword(),authList),token,authList);
     }
+
+
+    public Map<Long,Integer> getAllScan(){
+        Map<Long,Integer> map = new HashMap<>();
+        Set<String> scanSet = redisTemplate.keys("scan_*");
+        if(scanSet != null){
+            //有需要更新的浏览量
+            for(String x:scanSet){
+                //获取次数
+                String value = redisTemplate.opsForValue().get(x);
+                if(value != null){
+                    //存入map
+                    map.put(Long.parseLong(x.substring(x.lastIndexOf("_") + 1)),Integer.parseInt(value));
+                }
+            }
+        }
+        log.info("需要增加浏览量的数据：" + map.toString());
+        return map;
+    }
+
+
+    public Map<Long,Integer> getAllLike(){
+        Map<Long,Integer> map = new HashMap<>();
+        Set<String> likeSet = redisTemplate.keys("cntLike_*");
+        if(likeSet != null){
+            //有点赞
+            for(String x:likeSet){
+                //获取次数
+                String value = redisTemplate.opsForValue().get(x);
+                if(value != null){
+                    //存入map
+                    map.put(Long.parseLong(x.substring(x.lastIndexOf("_") + 1)),Integer.parseInt(value));
+                }
+            }
+        }else{
+            log.info("8小时内暂时没有点赞信息");
+        }
+        log.info("8小时内点赞信息：" + map.toString());
+        return map;
+    }
+
+
+    public Map<Long,Integer> getAllFavor(){
+        Map<Long,Integer> map = new HashMap<>();
+        Set<String> favorSet = redisTemplate.keys("cntFavor_*");
+        if(favorSet != null){
+            //有新收藏
+            for(String x:favorSet){
+                //获取次数
+                String value = redisTemplate.opsForValue().get(x);
+                if(value != null){
+                    //存入map
+                    map.put(Long.parseLong(x.substring(x.lastIndexOf("_") + 1)),Integer.parseInt(value));
+                }
+            }
+        }else{
+            log.info("8小时内没有收藏信息");
+        }
+        log.info("8小时内收藏信息：" + map.toString());
+        return map;
+    }
+
 
 }

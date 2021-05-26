@@ -163,6 +163,7 @@ public class UserServiceImpl implements UserService{
             User user1 = new User();
             user1.setUsername(phone);
             user1.setPhone(phone);
+            user1.setSex("女");
             user1.setPassword(new BCryptPasswordEncoder().encode(phone));
             userMapper.insert(user1);
             log.info("创建新用户成功");
@@ -454,7 +455,7 @@ public class UserServiceImpl implements UserService{
         wrapper1.eq("from_id",toId)
                 .eq("to_id",fromId);
         Fans fans1 = fansMapper.selectOne(wrapper);
-        if(fans1 == null){
+        if(fans1 != null){
             log.info("用户已关注");
             return 2;
         }else{

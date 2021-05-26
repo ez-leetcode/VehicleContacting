@@ -389,7 +389,7 @@ public class UserController {
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query")
     })
-    @ApiOperation(value = "批量删除历史记录",notes = "existWrong：历史记录不存在（可能是重复请求） success：成功")
+    @ApiOperation(value = "批量删除历史记录（还在施工）",notes = "existWrong：历史记录不存在（可能是重复请求） success：成功")
     @DeleteMapping("/history")
     public Result<JSONObject> deleteHistory(){
         return null;
