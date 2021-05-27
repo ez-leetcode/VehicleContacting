@@ -134,7 +134,7 @@ public class DiscussController {
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
     })
-    @ApiOperation(value = "获取评论列表（一级页面）",notes = "existWrong：帖子不存在（可能被删了，提示一下） success：成功（返回json ownerComment（楼主的评论和帖子的相关信息） pages（页面总数） counts（帖子总数） commentList（评论列表））")
+    @ApiOperation(value = "获取评论列表（一级页面）（不用啦~）",notes = "existWrong：帖子不存在（可能被删了，提示一下） success：成功（返回json ownerComment（楼主的评论和帖子的相关信息） pages（页面总数） counts（帖子总数） commentList（评论列表））")
     @GetMapping("/comment")
     public Result<JSONObject> getComment(@RequestParam("number") Long number,@RequestParam("isOrderByTime") Integer isOrderByTime,
                                          @RequestParam("cnt") Long cnt,@RequestParam("page") Long page){
@@ -151,7 +151,7 @@ public class DiscussController {
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
     })
-    @ApiOperation(value = "获取评论列表（二级页面，和B站一样只能按时间排序）",notes = "existWrong：评论不存在 success：成功（返回json fatherComment（父级评论） commentList（二级评论） pages（页面总数） counts（评论总数））")
+    @ApiOperation(value = "获取评论列表（二级页面，和B站一样只能按时间排序）（不用啦~）",notes = "existWrong：评论不存在 success：成功（返回json fatherComment（父级评论） commentList（二级评论） pages（页面总数） counts（评论总数））")
     @GetMapping("/comment1")
     public Result<JSONObject> getComment1(@RequestParam("number") Long number,@RequestParam("cnt") Long cnt,
                                           @RequestParam("page") Long page){
@@ -264,9 +264,66 @@ public class DiscussController {
         return ResultUtils.getResult(new JSONObject(),discussService.dislikeDiscuss(number,id));
     }
 
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "第一页面下面的评论要几个",required = true,dataType = "int",paramType = "query")
+    })
+    @ApiOperation(value = "获取第一个页面的帖子数据",notes = "existWrong：帖子不存在  success：成功 （返回json ownerComment：帖子主人写的内容 firstCommentList：下面的评论列表（2-3个就好））")
+    @GetMapping("/firstDiscuss")
+    public Result<JSONObject> getFirstDiscuss(@RequestParam("number") Long number,@RequestParam("cnt") Integer cnt){
+        log.info("正在获取第一个页面帖子数据，number：" + number + " cnt：" + cnt);
+        JSONObject jsonObject = discussService.getFirstDiscuss(number,cnt);
+        if(jsonObject == null){
+            return ResultUtils.getResult(new JSONObject(),"existWrong");
+        }
+        return ResultUtils.getResult(jsonObject,"success");
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "isOrderByHot",value = "是否按评论热度排序 1是 0不是",required = true,dataType = "int",paramType = "query")
+    })
+    @ApiOperation(value = "获取第二个页面帖子数据（就是评论页面）",notes = "existWrong：帖子不存在 success：成功 （返回json secondCommentList：二级评论列表 pages：页面数 counts：数据总数）")
+    @GetMapping("/secondDiscuss")
+    public Result<JSONObject> getSecondDiscuss(@RequestParam("number") Long number,@RequestParam("cnt") Long cnt,@RequestParam("page") Long page,
+                                               @RequestParam("isOrderByHot") Integer isOrderByHot){
+        log.info("正在获取第二个页面帖子数据，number：" + number + " cnt：" + cnt + " page：" + page + " isOrderByHot：" + isOrderByHot);
+        JSONObject jsonObject = discussService.getSecondDiscuss(number,cnt,page,isOrderByHot);
+        if(jsonObject == null){
+            return ResultUtils.getResult(new JSONObject(),"existWrong");
+        }
+        return ResultUtils.getResult(jsonObject,"success");
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "number",value = "评论编号（父级评论编号不是帖子编号，就是用户点进去查看详情的那个评论编号！）",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "获取第三页面帖子数据（就是评论的评论页面）",notes = "existWrong：评论不存在 success：成功 （返回json thirdCommentList：三级评论列表 OwnerComment：父级评论（显示在" +
+            "最上面） pages：页面数 counts：页面数据量）")
+    @GetMapping("/thirdDiscuss")
+    public Result<JSONObject> getThirdDiscuss(@RequestParam("number") Long number,@RequestParam("cnt") Long cnt,
+                                              @RequestParam("page") Long page){
+        log.info("正在获取第三页面帖子数据，number：" + number + " cnt：" + cnt + " page：" + page);
+        JSONObject jsonObject = discussService.getThirdDiscuss(number,cnt,page);
+        if(jsonObject == null){
+            return ResultUtils.getResult(new JSONObject(),"existWrong");
+        }
+        return ResultUtils.getResult(jsonObject,"success");
+    }
+
+
+
+
+
 
     @ApiOperation(value = "获取当前热点帖子",notes = "按照8小时内权重综合排序 浏览量：1 点赞：5 收藏：10 取消收藏/点赞等等会降低权重" +
-            "如果找不到合适的，比如刚开服等情况，就给当前浏览量最多的几个 success：返回json hotDiscuss（有三个帖子的编号 图片 标题）")
+            "如果找不到合适的，比如刚开服等情况，就给当前浏览量最多的几个 success：返回json hotDiscussList")
     @GetMapping("/hotDiscuss")
     public Result<JSONObject> getHotDiscuss(){
         log.info("正在获取热点帖子");

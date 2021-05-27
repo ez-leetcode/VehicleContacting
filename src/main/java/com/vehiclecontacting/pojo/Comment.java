@@ -48,7 +48,6 @@ public class Comment {
     private Long replyNumber;
 
     @ApiModelProperty(value = "伪删除",notes = "只有楼主和管理员才能删除")
-    @TableLogic
     private Integer deleted;
 
     @ApiModelProperty("创建日期")

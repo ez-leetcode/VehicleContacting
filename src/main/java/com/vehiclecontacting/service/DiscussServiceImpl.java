@@ -211,6 +211,8 @@ public class DiscussServiceImpl implements DiscussService{
     }
 
 
+
+
     @Override
     public JSONObject getComment(Long number, Long cnt, Long page, Integer isOrderByTime) {
         JSONObject jsonObject = new JSONObject();
@@ -541,16 +543,34 @@ public class DiscussServiceImpl implements DiscussService{
         log.info("热帖1：" + hotDiscussNumber1);
         log.info("热帖2：" + hotDiscussNumber2);
         log.info("热帖3：" + hotDiscussNumber3);
-        int status = 0;
+        QueryWrapper<Discuss> wrapper = new QueryWrapper<>();
+        wrapper.orderByDesc("scan_counts");
+        List<Discuss> discussList = discussMapper.selectList(wrapper);
+        List<HotDiscussMsg> hotDiscussMsgList = new LinkedList<>();
         if(hotDiscussNumber1 == 0L){
-            status ++;
+            hotDiscussMsgList.add(new HotDiscussMsg(discussList.get(0).getNumber(),discussList.get(0).getPhoto1(),discussList.get(0).getTitle()));
+            hotDiscussMsgList.add(new HotDiscussMsg(discussList.get(1).getNumber(),discussList.get(1).getPhoto1(),discussList.get(1).getTitle()));
+            hotDiscussMsgList.add(new HotDiscussMsg(discussList.get(2).getNumber(),discussList.get(2).getPhoto1(),discussList.get(2).getTitle()));
+        }else if(hotDiscussNumber2 == 0L){
+            Discuss discuss = discussMapper.selectById(hotDiscussNumber1);
+            hotDiscussMsgList.add(new HotDiscussMsg(discuss.getNumber(),discuss.getPhoto1(),discuss.getTitle()));
+            hotDiscussMsgList.add(new HotDiscussMsg(discussList.get(0).getNumber(),discussList.get(0).getPhoto1(),discussList.get(0).getTitle()));
+            hotDiscussMsgList.add(new HotDiscussMsg(discussList.get(1).getNumber(),discussList.get(1).getPhoto1(),discussList.get(1).getTitle()));
+        }else if(hotDiscussNumber3 == 0L){
+            Discuss discuss = discussMapper.selectById(hotDiscussNumber1);
+            Discuss discuss1 = discussMapper.selectById(hotDiscussNumber2);
+            hotDiscussMsgList.add(new HotDiscussMsg(discuss.getNumber(),discuss.getPhoto1(),discuss.getTitle()));
+            hotDiscussMsgList.add(new HotDiscussMsg(discuss1.getNumber(),discuss1.getPhoto1(),discuss1.getTitle()));
+            hotDiscussMsgList.add(new HotDiscussMsg(discussList.get(0).getNumber(),discussList.get(0).getPhoto1(),discussList.get(0).getTitle()));
+        }else{
+            Discuss discuss = discussMapper.selectById(hotDiscussNumber1);
+            Discuss discuss1 = discussMapper.selectById(hotDiscussNumber2);
+            Discuss discuss2 = discussMapper.selectById(hotDiscussNumber3);
+            hotDiscussMsgList.add(new HotDiscussMsg(discuss.getNumber(),discuss.getPhoto1(),discuss.getTitle()));
+            hotDiscussMsgList.add(new HotDiscussMsg(discuss1.getNumber(),discuss1.getPhoto1(),discuss1.getTitle()));
+            hotDiscussMsgList.add(new HotDiscussMsg(discuss2.getNumber(),discuss2.getPhoto1(),discuss2.getTitle()));
         }
-        if(hotDiscussNumber2 == 0L){
-            status ++;
-        }
-        if(hotDiscussNumber3 == 0L){
-            status ++;
-        }
+        /*
         if(status == 0){
             //都有图片
             log.info("都有图片呢~");
@@ -597,13 +617,164 @@ public class DiscussServiceImpl implements DiscussService{
                     discuss1.getPhoto1(),discuss1.getTitle(),discuss2.getNumber(),discuss2.getPhoto1(),discuss2.getTitle());
             jsonObject.put("hotDiscuss",hotDiscussMsg);
         }
+
+         */
+        jsonObject.put("hotDiscussList",hotDiscussMsgList);
         log.info("获取主页面图片信息成功");
         log.info(jsonObject.toString());
         return jsonObject;
     }
 
 
+    @Override
+    public JSONObject getFirstDiscuss(Long number, Integer cnt) {
+        JSONObject jsonObject = new JSONObject();
+        Discuss discuss = discussMapper.selectById(number);
+        if(discuss == null){
+            log.error("获取第一页面失败，帖子不存在");
+            return null;
+        }
+        User user = userMapper.selectById(discuss.getFromId());
+        OwnerCommentMsg ownerCommentMsg = new OwnerCommentMsg(discuss.getNumber(),user.getId(),user.getUsername(),user.getPhoto(),user.getSex(),discuss.getTitle(),
+                discuss.getDescription(),discuss.getPhoto1(),discuss.getPhoto2(),discuss.getPhoto3(),discuss.getLikeCounts(),discuss.getCommentCounts(),discuss.getFavorCounts(),discuss.getScanCounts(),discuss.getCreateTime(),discuss.getDeleted());
+        QueryWrapper<Comment> wrapper = new QueryWrapper<>();
+        wrapper.eq("number",number)
+                .orderByDesc("like_counts");
+        List<Comment> commentList = commentMapper.selectList(wrapper);
+        List<FirstCommentMsg> firstCommentMsgList = new LinkedList<>();
+        int ck = 0;
+        for(Comment x:commentList){
+            ck ++;
+            User user1 = userMapper.selectById(x.getId());
+            FirstCommentMsg firstCommentMsg = new FirstCommentMsg(x.getId(),user1.getUsername(),user1.getPhoto(),user1.getVip(),x.getNumber(),x.getComments(),x.getLikeCounts(),x.getCreateTime(),x.getDeleted());
+            firstCommentMsgList.add(firstCommentMsg);
+            if(ck == cnt){
+                break;
+            }
+        }
+        jsonObject.put("ownerComment",ownerCommentMsg);
+        jsonObject.put("firstCommentList",firstCommentMsgList);
+        log.info("获取首页帖子成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
 
+
+    @Override
+    public JSONObject getSecondDiscuss(Long number, Long cnt, Long page, Integer isOrderByHot) {
+        JSONObject jsonObject = new JSONObject();
+        Discuss discuss = discussMapper.selectById(number);
+        if(discuss == null){
+            log.info("获取二级评论失败，帖子不存在");
+            return null;
+        }
+        QueryWrapper<Comment> wrapper = new QueryWrapper<>();
+        wrapper.eq("number",number);
+        if(isOrderByHot == 1){
+            wrapper.orderByDesc("like_counts");
+        }else{
+            wrapper.orderByDesc("create_time");
+        }
+        Page<Comment> page1 = new Page<>(page,cnt);
+        commentMapper.selectPage(page1,wrapper);
+        List<Comment> commentList = page1.getRecords();
+        List<SecondCommentMsg> commentMsgList = new LinkedList<>();
+        for(Comment x:commentList){
+            //对每个评论找到下面的评论
+            QueryWrapper<Comment> wrapper1 = new QueryWrapper<>();
+            wrapper1.eq("father_number",x.getNumber())
+                    .orderByDesc("like_counts");
+            User user = userMapper.selectById(x.getId());
+            SecondCommentMsg secondCommentMsg = new SecondCommentMsg(x.getNumber(),x.getId(),user.getUsername(),user.getPhoto(),user.getVip(),x.getComments(),x.getLikeCounts(),x.getCommentCounts(),
+                    x.getCreateTime(),null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null);
+            List<Comment> commentList1 = commentMapper.selectList(wrapper1);
+            int ck = 0;
+            for(Comment x1:commentList1){
+                ck ++;
+                if(ck == 1){
+                    User user1 = userMapper.selectById(x1.getId());
+                    secondCommentMsg.setReplyNumber1(x.getNumber());
+                    secondCommentMsg.setReplyId1(user1.getId());
+                    secondCommentMsg.setReplyPhoto1(user1.getPhoto());
+                    secondCommentMsg.setReplyUsername1(user1.getUsername());
+                    secondCommentMsg.setReplyVip1(user1.getVip());
+                    secondCommentMsg.setReplyDescription1(x1.getComments());
+                    secondCommentMsg.setReplyCreateTime1(x1.getCreateTime());
+                    secondCommentMsg.setReplyLikeCounts1(x1.getLikeCounts());
+                    if(x1.getReplyNumber() != null){
+                        //有回复别人
+                        Comment comment = commentMapper.selectById(x1.getReplyNumber());
+                        User user2 = userMapper.selectById(comment.getId());
+                        secondCommentMsg.setSecondReplyUsername1(user2.getUsername());
+                    }
+                }else if(ck == 2){
+                    User user1 = userMapper.selectById(x1.getId());
+                    secondCommentMsg.setReplyNumber2(x.getNumber());
+                    secondCommentMsg.setReplyId2(user1.getId());
+                    secondCommentMsg.setReplyPhoto2(user1.getPhoto());
+                    secondCommentMsg.setReplyUsername2(user1.getUsername());
+                    secondCommentMsg.setReplyVip2(user1.getVip());
+                    secondCommentMsg.setReplyDescription2(x1.getComments());
+                    secondCommentMsg.setReplyCreateTime2(x1.getCreateTime());
+                    secondCommentMsg.setReplyLikeCounts2(x1.getLikeCounts());
+                    if(x1.getReplyNumber() != null){
+                        //有回复别人
+                        Comment comment = commentMapper.selectById(x1.getReplyNumber());
+                        User user2 = userMapper.selectById(comment.getId());
+                        secondCommentMsg.setSecondReplyUsername2(user2.getUsername());
+                    }
+                }else{
+                    break;
+                }
+            }
+            commentMsgList.add(secondCommentMsg);
+        }
+        jsonObject.put("secondCommentList",commentMsgList);
+        jsonObject.put("pages",page1.getPages());
+        jsonObject.put("counts",page1.getTotal());
+        log.info("获取第二页面评论成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
+
+    @Override
+    public JSONObject getThirdDiscuss(Long number, Long cnt, Long page) {
+        JSONObject jsonObject = new JSONObject();
+        Comment comment = commentMapper.selectById(number);
+        if(comment == null){
+            log.error("获取三级评论失败，父级评论不存在");
+            return null;
+        }
+        User user = userMapper.selectById(comment.getId());
+        OwnerCommentMsg1 ownerCommentMsg1 = new OwnerCommentMsg1(comment.getNumber(),user.getId(),user.getUsername(),user.getPhoto(),user.getVip(),comment.getComments(),
+                comment.getCommentCounts(),comment.getLikeCounts(),comment.getCreateTime());
+        QueryWrapper<Comment> wrapper = new QueryWrapper<>();
+        wrapper.eq("father_number",number)
+                .orderByAsc("create_time");
+        Page<Comment> page1 = new Page<>(page,cnt);
+        commentMapper.selectPage(page1,wrapper);
+        List<Comment> commentList = page1.getRecords();
+        List<ThirdCommentMsg> commentMsgList = new LinkedList<>();
+        for(Comment x:commentList){
+            User user1 = userMapper.selectById(x.getId());
+            ThirdCommentMsg thirdCommentMsg = new ThirdCommentMsg(x.getNumber(),user1.getId(),user1.getUsername(),user1.getPhoto(),user1.getVip(),x.getComments(),x.getLikeCounts(),x.getReplyNumber(),
+                    null,null,x.getCreateTime());
+            //获取回复信息
+            if(x.getReplyNumber() != null){
+                Comment comment1 = commentMapper.selectById(x.getReplyNumber());
+                User user2 = userMapper.selectById(comment1.getId());
+                thirdCommentMsg.setReplyId(comment1.getId());
+                thirdCommentMsg.setReplyUsername(user2.getUsername());
+            }
+            commentMsgList.add(thirdCommentMsg);
+        }
+        jsonObject.put("thirdCommentList",commentMsgList);
+        jsonObject.put("ownerComment",ownerCommentMsg1);
+        jsonObject.put("counts",page1.getTotal());
+        jsonObject.put("pages",page1.getPages());
+        return jsonObject;
+    }
 
 
 
