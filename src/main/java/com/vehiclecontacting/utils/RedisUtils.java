@@ -192,5 +192,27 @@ public class RedisUtils {
         return map;
     }
 
+    public Map<String,Integer> getAllHotKeyword(){
+        Map<String,Integer> map = new HashMap<>();
+        Set<String> hotKeywordSet = redisTemplate.keys("hotKeyword_*");
+        if(hotKeywordSet != null){
+            //有新热词
+            for(String x:hotKeywordSet){
+                //获取次数
+                String value = redisTemplate.opsForValue().get(x);
+                if(value != null){
+                    //存入map
+                    map.put(x.substring(x.lastIndexOf("_") + 1),Integer.parseInt(value));
+                }
+            }
+        }else{
+            log.info("8小时内没有热词信息");
+        }
+        log.info("8小时内热词信息：" + map.toString());
+        return map;
+    }
+
+
+
 
 }

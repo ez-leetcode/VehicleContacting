@@ -266,13 +266,15 @@ public class DiscussController {
 
     @ApiImplicitParams({
             @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query"),
-            @ApiImplicitParam(name = "cnt",value = "第一页面下面的评论要几个",required = true,dataType = "int",paramType = "query")
+            @ApiImplicitParam(name = "cnt",value = "第一页面下面的评论要几个",required = true,dataType = "int",paramType = "query"),
+            @ApiImplicitParam(name = "id",value = "有登录要给用户id来记录历史浏览",dataType = "Long",paramType = "query")
     })
     @ApiOperation(value = "获取第一个页面的帖子数据",notes = "existWrong：帖子不存在  success：成功 （返回json ownerComment：帖子主人写的内容 firstCommentList：下面的评论列表（2-3个就好））")
     @GetMapping("/firstDiscuss")
-    public Result<JSONObject> getFirstDiscuss(@RequestParam("number") Long number,@RequestParam("cnt") Integer cnt){
-        log.info("正在获取第一个页面帖子数据，number：" + number + " cnt：" + cnt);
-        JSONObject jsonObject = discussService.getFirstDiscuss(number,cnt);
+    public Result<JSONObject> getFirstDiscuss(@RequestParam("number") Long number,@RequestParam("cnt") Integer cnt,
+                                              @RequestParam(value = "id",required = false) Long id){
+        log.info("正在获取第一个页面帖子数据，number：" + number + " cnt：" + cnt + " id：" + id);
+        JSONObject jsonObject = discussService.getFirstDiscuss(number,cnt,id);
         if(jsonObject == null){
             return ResultUtils.getResult(new JSONObject(),"existWrong");
         }
@@ -319,15 +321,35 @@ public class DiscussController {
 
 
 
-
-
-
     @ApiOperation(value = "获取当前热点帖子",notes = "按照8小时内权重综合排序 浏览量：1 点赞：5 收藏：10 取消收藏/点赞等等会降低权重" +
             "如果找不到合适的，比如刚开服等情况，就给当前浏览量最多的几个 success：返回json hotDiscussList")
     @GetMapping("/hotDiscuss")
     public Result<JSONObject> getHotDiscuss(){
         log.info("正在获取热点帖子");
         return ResultUtils.getResult(discussService.getHotDiscuss(),"success");
+    }
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "number",value = "评论编号",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "判断评论是否被点赞",notes = "existWrong：评论不存在 success：成功 （返回json isLike：是否被点赞1是0不是）")
+    @PostMapping("/commentLike")
+    public Result<JSONObject> judgeCommentLike(@RequestParam("number") Long number,@RequestParam(("id")) Long id){
+        log.info("正在判断是否被点赞，id：" + id + " number：" + number);
+        JSONObject jsonObject = discussService.judgeCommentLike(id,number);
+        if(jsonObject == null){
+            return ResultUtils.getResult(new JSONObject(),"existWrong");
+        }
+        return ResultUtils.getResult(jsonObject,"success");
+    }
+
+
+    @ApiOperation(value = "获取当前热词",notes = "success：成功 （返回json hotKeywordList：热词列表（一共有10个））")
+    @GetMapping("/hotKeyword")
+    public Result<JSONObject> getHotKeyword(){
+        log.info("正在获取热词列表");
+        return ResultUtils.getResult(discussService.getHotKeyword(),"success");
     }
 
 

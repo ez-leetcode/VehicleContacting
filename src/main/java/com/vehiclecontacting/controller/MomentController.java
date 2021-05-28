@@ -59,6 +59,7 @@ public class MomentController {
         return ResultUtils.getResult(new JSONObject(),momentService.generateMoment(id,description,photo1,photo2,photo3));
     }
 
+
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "number",value = "动态编号",required = true,dataType = "Long",paramType = "query")

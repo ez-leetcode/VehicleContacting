@@ -4,10 +4,12 @@ package com.vehiclecontacting.service;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.vehiclecontacting.mapper.DiscussMapper;
 import com.vehiclecontacting.mapper.UserMapper;
 import com.vehiclecontacting.mapper.VehicleMapper;
 import com.vehiclecontacting.msg.VehicleJudgeMsg;
 import com.vehiclecontacting.msg.VehicleMsg;
+import com.vehiclecontacting.pojo.Discuss;
 import com.vehiclecontacting.pojo.User;
 import com.vehiclecontacting.pojo.Vehicle;
 import com.vehiclecontacting.utils.RedisUtils;
@@ -32,6 +34,9 @@ public class AdministratorServiceImpl implements AdministratorService{
 
     @Autowired
     private RedisUtils redisUtils;
+
+    @Autowired
+    private DiscussMapper discussMapper;
 
     @Override
     public String judgeVehicle(String license, Integer isPass, String reason) {
@@ -129,4 +134,21 @@ public class AdministratorServiceImpl implements AdministratorService{
         return "success";
     }
 
+
+    @Override
+    public String deleteDiscuss(Long number,String reason) {
+        Discuss discuss = discussMapper.selectById(number);
+        if(discuss == null){
+            log.error("删除帖子失败，帖子不存在");
+            return "existWrong";
+        }
+        //删除帖子
+        discussMapper.deleteById(number);
+        //更新用户信息
+        User user = userMapper.selectById(discuss.getFromId());
+        user.setDiscussCounts(user.getDiscussCounts() - 1);
+        userMapper.updateById(user);
+        //通知用户原因待完成
+        return "success";
+    }
 }

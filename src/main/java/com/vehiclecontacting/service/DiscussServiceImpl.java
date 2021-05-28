@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.vehiclecontacting.mapper.*;
 import com.vehiclecontacting.msg.*;
 import com.vehiclecontacting.pojo.*;
+import com.vehiclecontacting.utils.KeywordUtils;
 import com.vehiclecontacting.utils.OssUtils;
 import com.vehiclecontacting.utils.RedisUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +43,28 @@ public class DiscussServiceImpl implements DiscussService{
 
     @Autowired
     private LikeDiscussMapper likeDiscussMapper;
+
+    @Autowired
+    private HistoryDiscussMapper historyDiscussMapper;
+
+    public static List<String> hotDiscussKeyWord = new LinkedList<>();
+
+    //模板
+    public static List<String> hotDiscussKeywordTemplate;
+
+    static{
+        hotDiscussKeyWord.add("小青龙");
+        hotDiscussKeyWord.add("美工小姐姐");
+        hotDiscussKeyWord.add("跑路了");
+        hotDiscussKeyWord.add("真的该死");
+        hotDiscussKeyWord.add("我恨陆茜蒙");
+        hotDiscussKeyWord.add("美工产品不干活");
+        hotDiscussKeyWord.add("都让前后端小哥来干");
+        hotDiscussKeyWord.add("真有你的");
+        hotDiscussKeyWord.add("建议改为");
+        hotDiscussKeyWord.add("吉祥物");
+        hotDiscussKeywordTemplate = hotDiscussKeyWord;
+    }
 
     public static Long hotDiscussNumber1 = 0L;
 
@@ -141,6 +164,8 @@ public class DiscussServiceImpl implements DiscussService{
                 //添加评论
                 commentMapper.insert(comment1);
             }
+            comment.setCommentCounts(comment.getCommentCounts() + 1);
+            commentMapper.updateById(comment);
         }else{
             //一级评论
             Comment comment = new Comment();
@@ -171,7 +196,8 @@ public class DiscussServiceImpl implements DiscussService{
         }else{
             if(keyword != null && !keyword.equals("")){
                 //有关键词
-                wrapper.like("title",keyword);
+                String realKeyword = KeywordUtils.deleteSpace(keyword);
+                wrapper.like("title",realKeyword);
             }
             if(isOrderByTime == 1){
                 wrapper.orderByDesc("update_time");
@@ -189,6 +215,11 @@ public class DiscussServiceImpl implements DiscussService{
             DiscussMsg discussMsg = new DiscussMsg(x.getNumber(),x.getPhoto1(),user.getUsername(),user.getPhoto(),x.getTitle(),x.getDescription(),x.getLikeCounts(),
                     x.getCommentCounts(),x.getFavorCounts(),x.getScanCounts(),x.getUpdateTime());
             discussMsgList.add(discussMsg);
+        }
+        if(keyword != null && !keyword.equals("")){
+            //存热搜词
+            String realKeyword = KeywordUtils.deleteSpace(keyword);
+            redisUtils.addKeyByTime("hotKeyword_" + realKeyword,24);
         }
         jsonObject.put("discussList",discussMsgList);
         jsonObject.put("pages",page1.getPages());
@@ -627,7 +658,7 @@ public class DiscussServiceImpl implements DiscussService{
 
 
     @Override
-    public JSONObject getFirstDiscuss(Long number, Integer cnt) {
+    public JSONObject getFirstDiscuss(Long number, Integer cnt,Long id) {
         JSONObject jsonObject = new JSONObject();
         Discuss discuss = discussMapper.selectById(number);
         if(discuss == null){
@@ -638,7 +669,7 @@ public class DiscussServiceImpl implements DiscussService{
         OwnerCommentMsg ownerCommentMsg = new OwnerCommentMsg(discuss.getNumber(),user.getId(),user.getUsername(),user.getPhoto(),user.getSex(),discuss.getTitle(),
                 discuss.getDescription(),discuss.getPhoto1(),discuss.getPhoto2(),discuss.getPhoto3(),discuss.getLikeCounts(),discuss.getCommentCounts(),discuss.getFavorCounts(),discuss.getScanCounts(),discuss.getCreateTime(),discuss.getDeleted());
         QueryWrapper<Comment> wrapper = new QueryWrapper<>();
-        wrapper.eq("number",number)
+        wrapper.eq("discuss_number",number)
                 .orderByDesc("like_counts");
         List<Comment> commentList = commentMapper.selectList(wrapper);
         List<FirstCommentMsg> firstCommentMsgList = new LinkedList<>();
@@ -650,6 +681,25 @@ public class DiscussServiceImpl implements DiscussService{
             firstCommentMsgList.add(firstCommentMsg);
             if(ck == cnt){
                 break;
+            }
+        }
+        //保存历史记录
+        if(id != null){
+            QueryWrapper<HistoryDiscuss> wrapper1 = new QueryWrapper<>();
+            wrapper1.eq("id",id)
+                    .eq("number",number);
+            HistoryDiscuss historyDiscuss = historyDiscussMapper.selectOne(wrapper1);
+            if(historyDiscuss != null){
+                //有历史记录
+                historyDiscuss.setFavorCounts(discuss.getFavorCounts());
+                historyDiscuss.setCommentCounts(discuss.getCommentCounts());
+                historyDiscussMapper.updateById(historyDiscuss);
+                log.info("更新历史记录成功");
+            }else{
+                //没历史记录，创建一个
+                HistoryDiscuss historyDiscuss1 = new HistoryDiscuss(number,id,discuss.getCommentCounts(),discuss.getFavorCounts(),null,null);
+                historyDiscussMapper.insert(historyDiscuss1);
+                log.info("添加历史记录成功");
             }
         }
         jsonObject.put("ownerComment",ownerCommentMsg);
@@ -669,7 +719,8 @@ public class DiscussServiceImpl implements DiscussService{
             return null;
         }
         QueryWrapper<Comment> wrapper = new QueryWrapper<>();
-        wrapper.eq("number",number);
+        wrapper.eq("discuss_number",number)
+                .eq("father_number",0);
         if(isOrderByHot == 1){
             wrapper.orderByDesc("like_counts");
         }else{
@@ -701,7 +752,7 @@ public class DiscussServiceImpl implements DiscussService{
                     secondCommentMsg.setReplyDescription1(x1.getComments());
                     secondCommentMsg.setReplyCreateTime1(x1.getCreateTime());
                     secondCommentMsg.setReplyLikeCounts1(x1.getLikeCounts());
-                    if(x1.getReplyNumber() != null){
+                    if(x1.getReplyNumber() != null && x1.getReplyNumber() != 0L){
                         //有回复别人
                         Comment comment = commentMapper.selectById(x1.getReplyNumber());
                         User user2 = userMapper.selectById(comment.getId());
@@ -717,7 +768,7 @@ public class DiscussServiceImpl implements DiscussService{
                     secondCommentMsg.setReplyDescription2(x1.getComments());
                     secondCommentMsg.setReplyCreateTime2(x1.getCreateTime());
                     secondCommentMsg.setReplyLikeCounts2(x1.getLikeCounts());
-                    if(x1.getReplyNumber() != null){
+                    if(x1.getReplyNumber() != null && x1.getReplyNumber() != 0L){
                         //有回复别人
                         Comment comment = commentMapper.selectById(x1.getReplyNumber());
                         User user2 = userMapper.selectById(comment.getId());
@@ -761,7 +812,7 @@ public class DiscussServiceImpl implements DiscussService{
             ThirdCommentMsg thirdCommentMsg = new ThirdCommentMsg(x.getNumber(),user1.getId(),user1.getUsername(),user1.getPhoto(),user1.getVip(),x.getComments(),x.getLikeCounts(),x.getReplyNumber(),
                     null,null,x.getCreateTime());
             //获取回复信息
-            if(x.getReplyNumber() != null){
+            if(x.getReplyNumber() != null && x.getReplyNumber() != 0L){
                 Comment comment1 = commentMapper.selectById(x.getReplyNumber());
                 User user2 = userMapper.selectById(comment1.getId());
                 thirdCommentMsg.setReplyId(comment1.getId());
@@ -777,6 +828,37 @@ public class DiscussServiceImpl implements DiscussService{
     }
 
 
+    @Override
+    public JSONObject judgeCommentLike(Long id, Long number) {
+        QueryWrapper<Comment> wrapper = new QueryWrapper<>();
+        wrapper.eq("number",number);
+        Comment comment = commentMapper.selectOne(wrapper);
+        if(comment == null){
+            log.error("获取评论点赞状态失败，评论不存在");
+            return null;
+        }
+        JSONObject jsonObject = new JSONObject();
+        QueryWrapper<CommentLikes> wrapper1 = new QueryWrapper<>();
+        wrapper1.eq("number",number)
+                .eq("id",id);
+        CommentLikes commentLikes = commentLikesMapper.selectOne(wrapper1);
+        if(commentLikes == null){
+            log.info("获取评论点赞状态成功，评论未被点赞");
+            jsonObject.put("isLike",0);
+        }else{
+            log.info("获取评论点赞状态成功，评论已被点赞");
+            jsonObject.put("isLike",1);
+        }
+        return jsonObject;
+    }
 
 
+    @Override
+    public JSONObject getHotKeyword() {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("hotKeywordList",DiscussServiceImpl.hotDiscussKeyWord);
+        log.info("获取热词列表成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
 }

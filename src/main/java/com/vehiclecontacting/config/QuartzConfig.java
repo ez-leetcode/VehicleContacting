@@ -2,6 +2,7 @@ package com.vehiclecontacting.config;
 
 
 import com.vehiclecontacting.quartz.HotDiscussJob;
+import com.vehiclecontacting.quartz.HotKeywordJob;
 import com.vehiclecontacting.quartz.RefreshScanCountsJob;
 import org.quartz.*;
 import org.springframework.context.annotation.Bean;
@@ -46,10 +47,30 @@ public class QuartzConfig {
 
     @Bean
     public Trigger hotDiscussTrigger(){
-        CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule("0 0 0/8 * * ? ");
+        CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule("0 */15 * * * ?");
         return TriggerBuilder.newTrigger()
                 .forJob(hotDiscussDetail())
                 .withIdentity("hotDiscussTrigger")
+                .withSchedule(cronScheduleBuilder)
+                .build();
+    }
+
+
+    //搜索热词任务
+    @Bean
+    public JobDetail hotKeywordDetail(){
+        return JobBuilder.newJob(HotKeywordJob.class)
+                .withIdentity("hotKeywordDetail")
+                .storeDurably()
+                .build();
+    }
+
+    @Bean
+    public Trigger hotKeywordTrigger(){
+        CronScheduleBuilder cronScheduleBuilder = CronScheduleBuilder.cronSchedule("0 */30 * * * ?");
+        return TriggerBuilder.newTrigger()
+                .forJob(hotKeywordDetail())
+                .withIdentity("hotKeywordTrigger")
                 .withSchedule(cronScheduleBuilder)
                 .build();
     }

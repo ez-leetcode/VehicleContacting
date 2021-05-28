@@ -11,4 +11,6 @@ public interface AdministratorService {
     String frozeUser(Long id, Integer minutes);
 
     String reopenUser(Long id);
+
+    String deleteDiscuss(Long number,String reason);
 }

@@ -399,15 +399,4 @@ public class UserController {
 
 
 
-
-    /*
-    @ApiOperation(value = "多项选择删除历史记录",notes = "success：成功")
-    @DeleteMapping("/history")
-    public Result<JSONObject> deleteHistory(){
-
-    }
-     */
-
-
-
 }

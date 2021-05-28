@@ -33,11 +33,15 @@ public interface DiscussService {
 
     String dislikeDiscuss(Long number,Long id);
 
-    JSONObject getFirstDiscuss(Long number,Integer cnt);
+    JSONObject getFirstDiscuss(Long number,Integer cnt,Long id);
 
     JSONObject getSecondDiscuss(Long number,Long cnt,Long page,Integer isOrderByHot);
 
     JSONObject getThirdDiscuss(Long number,Long cnt,Long page);
 
     JSONObject getHotDiscuss();
+
+    JSONObject judgeCommentLike(Long id,Long number);
+
+    JSONObject getHotKeyword();
 }

@@ -77,6 +77,16 @@ public class AdministratorController {
         return ResultUtils.getResult(new JSONObject(),administratorService.reopenUser(id));
     }
 
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "reason",value = "删帖原因（用于通知）",required = true,dataType = "string",paramType = "query")
+    })
+    @ApiOperation(value = "删除帖子",notes = "existWrong：帖子不存在 success：成功")
+    @DeleteMapping("/discuss")
+    public Result<JSONObject> deleteDiscuss(@RequestParam("number") Long number,@RequestParam("reason") String reason){
+        log.info("正在管理员删帖，number：" + number + " reason：" + reason);
+        return ResultUtils.getResult(new JSONObject(),administratorService.deleteDiscuss(number,reason));
+    }
 
 
 }

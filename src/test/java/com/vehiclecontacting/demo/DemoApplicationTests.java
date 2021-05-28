@@ -11,6 +11,7 @@ import com.vehiclecontacting.pojo.Fans;
 import com.vehiclecontacting.pojo.Role;
 import com.vehiclecontacting.pojo.User;
 import com.vehiclecontacting.service.SmsService;
+import com.vehiclecontacting.utils.KeywordUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +41,20 @@ class DemoApplicationTests {
         System.out.println(hotDiscuss1);
         System.out.println(hotDiscuss2);
         System.out.println(hotDiscuss3);
+        List<Long> ck = new LinkedList<>();
+        ck.add(5L);
+        ck.add(22L);
+        ck.add(10L);
+        ck.add(18L);
+        System.out.println(ck.toString());
+        ck.remove(3);
+        System.out.println(ck.toString());
+        ck.add(0,list.get(map.size() - 1).getKey());
+        System.out.println(ck.toString());
     }
+
+
+
 
 
 }
