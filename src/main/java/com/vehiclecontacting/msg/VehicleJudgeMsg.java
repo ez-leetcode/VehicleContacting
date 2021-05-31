@@ -23,6 +23,9 @@ public class VehicleJudgeMsg {
     @ApiModelProperty("车辆类型")
     private Integer type;
 
+    @ApiModelProperty("车辆品牌")
+    private String vehicleBrand;
+
     @ApiModelProperty("用户id")
     private Long id;
 

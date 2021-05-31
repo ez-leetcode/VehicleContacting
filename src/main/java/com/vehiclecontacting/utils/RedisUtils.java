@@ -58,7 +58,6 @@ public class RedisUtils {
 
 
 
-
     //存带有过期时间的key-value
     public void saveByHoursTime(String key,String value,int hours){
         //为防止缓存雪崩  加一个随机时间
@@ -211,8 +210,5 @@ public class RedisUtils {
         log.info("8小时内热词信息：" + map.toString());
         return map;
     }
-
-
-
 
 }

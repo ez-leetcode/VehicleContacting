@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.vehiclecontacting.mapper.*;
+import com.vehiclecontacting.msg.BlackUserMsg;
 import com.vehiclecontacting.msg.FansMsg;
 import com.vehiclecontacting.msg.HistoryDiscussMsg;
 import com.vehiclecontacting.pojo.*;
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Date;
@@ -49,6 +51,15 @@ public class UserServiceImpl implements UserService{
 
     @Autowired
     private DiscussMapper discussMapper;
+
+    @Autowired
+    private BlackUserMapper blackUserMapper;
+
+    @Autowired
+    private FriendMapper friendMapper;
+
+    @Autowired
+    private PostFriendMapper postFriendMapper;
 
     @Override
     public String register(String phone, String code,String password) {
@@ -156,7 +167,7 @@ public class UserServiceImpl implements UserService{
                 return "codeExistWrong";
             }
             if(!redisCode.equals(code.toLowerCase())){
-                log.error("登录失败验证码错误");
+                log.error("登录失败，验证码错误");
                 return "codeWrong";
             }
             //账号不存在，当场创建一个账户
@@ -561,5 +572,180 @@ public class UserServiceImpl implements UserService{
         log.info("添加反馈成功");
         return "success";
     }
+
+
+    @Override
+    public String addBlack(Long fromId, Long toId) {
+        QueryWrapper<BlackUser> wrapper = new QueryWrapper<>();
+        wrapper.eq("from_id",fromId)
+                .eq("to_id",toId);
+        BlackUser blackUser = blackUserMapper.selectOne(wrapper);
+        if(blackUser != null){
+            log.error("添加黑名单失败，用户已被拉黑");
+            return "repeatWrong";
+        }
+        //没被拉黑.拉黑
+        blackUserMapper.insert(new BlackUser(fromId,toId,null));
+        //添加黑名单数
+        User user = userMapper.selectById(fromId);
+        user.setBlackCounts(user.getBlackCounts() + 1);
+        userMapper.updateById(user);
+        log.info("添加黑名单成功");
+        return "success";
+    }
+
+    @Override
+    public String removeBlack(Long fromId, Long toId) {
+        QueryWrapper<BlackUser> wrapper = new QueryWrapper<>();
+        wrapper.eq("from_id",fromId)
+                .eq("to_id",toId);
+        BlackUser blackUser = blackUserMapper.selectOne(wrapper);
+        if(blackUser == null){
+            log.error("移除黑名单失败，用户已被移除黑名单");
+            return "repeatWrong";
+        }
+        //没被移除黑名单，移除
+        blackUserMapper.delete(wrapper);
+        //减少黑名单数
+        User user = userMapper.selectById(fromId);
+        user.setBlackCounts(user.getBlackCounts() - 1);
+        userMapper.updateById(user);
+        log.info("移除黑名单成功");
+        return "success";
+    }
+
+
+    @Override
+    public JSONObject getBlackList(Long id, Long page, Long cnt) {
+        JSONObject jsonObject = new JSONObject();
+        QueryWrapper<BlackUser> wrapper = new QueryWrapper<>();
+        wrapper.eq("from_id",id)
+                .orderByDesc("create_time");
+        Page<BlackUser> page1 = new Page<>(page,cnt);
+        blackUserMapper.selectPage(page1,wrapper);
+        List<BlackUser> blackUserList = page1.getRecords();
+        List<BlackUserMsg> blackUserMsgList = new LinkedList<>();
+        for(BlackUser x:blackUserList){
+            User user = userMapper.selectById(x.getToId());
+            blackUserMsgList.add(new BlackUserMsg(user.getId(),user.getUsername(),user.getSex(),user.getVip(),user.getPhoto(),user.getIntroduction(),x.getCreateTime()));
+        }
+        jsonObject.put("blackList",blackUserMsgList);
+        jsonObject.put("pages",page1.getPages());
+        jsonObject.put("counts",page1.getTotal());
+        log.info("获取黑名单列表成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
+
+    @Override
+    public String addFriend(Long fromId, Long toId, String reason) {
+        //先看是不是在黑名单里
+        QueryWrapper<BlackUser> wrapper3 = new QueryWrapper<>();
+        wrapper3.eq("from_id",toId)
+                .eq("to_id",fromId);
+        BlackUser blackUser = blackUserMapper.selectOne(wrapper3);
+        if(blackUser != null){
+            log.info("加好友失败，你在对方的黑名单内");
+            return "blackWrong";
+        }
+        QueryWrapper<Friend> wrapper = new QueryWrapper<>();
+        wrapper.eq("id1",fromId)
+                .eq("id2",toId)
+                .or()
+                .eq("id1",toId)
+                .eq("id2",fromId);
+        Friend friend = friendMapper.selectOne(wrapper);
+        if(friend != null){
+            log.error("申请加好友失败，你们已经加为好友");
+            return "repeatWrong";
+        }
+        QueryWrapper<PostFriend> wrapper1 = new QueryWrapper<>();
+        wrapper1.eq("from_id",toId)
+                .eq("to_id",fromId);
+        PostFriend postFriend = postFriendMapper.selectOne(wrapper1);
+        //看看之前有没有自己的请求
+        QueryWrapper<PostFriend> wrapper2 = new QueryWrapper<>();
+        wrapper2.eq("from_id",fromId)
+                .eq("to_id",toId);
+        PostFriend postFriend2 = postFriendMapper.selectOne(wrapper2);
+        if(postFriend != null && postFriend.getIsPass() == 0){
+            log.info("对方已经申请加好友了，直接成为朋友");
+            Friend friend1 = new Friend(fromId,toId,null);
+            friendMapper.updateById(friend1);
+            //成功加好友通知待定
+            //通过好友申请，直接pass
+            postFriend.setIsPass(1);
+            postFriendMapper.updateById(postFriend);
+            log.info("通过好友申请成功");
+            //生成请求直接通过，之前肯定没请求
+            PostFriend postFriend1 = new PostFriend(fromId,toId,reason,1,null,null);
+            postFriendMapper.insert(postFriend1);
+            log.info("生成好友请求并直接通过成功");
+            User user = userMapper.selectById(fromId);
+            User user1 = userMapper.selectById(toId);
+            user.setFriendCounts(user.getFriendCounts() + 1);
+            user1.setFriendCounts(user1.getFriendCounts() + 1);
+            userMapper.updateById(user);
+            userMapper.updateById(user1);
+            log.info("好友数更新成功");
+            return "success";
+        }
+        //看看有没有之前的请求，有就翻新
+        if(postFriend2 != null){
+            //要考虑之前被拒绝的情况
+            postFriend2.setIsPass(0);
+            postFriend2.setReason(reason);
+            postFriendMapper.updateById(postFriend2);
+            log.info("翻新申请好友请求成功");
+        }else{
+            //没有就发送请求
+            PostFriend postFriend1 = new PostFriend(fromId,toId,reason,0,null,null);
+            postFriendMapper.insert(postFriend1);
+            log.info("发送请求成功");
+        }
+        log.info("申请加好友成功");
+        return "success";
+    }
+
+    @Override
+    public String judgeFriend(Long fromId, Long toId, Integer isPass) {
+        QueryWrapper<PostFriend> wrapper = new QueryWrapper<>();
+        wrapper.eq("from_id",fromId)
+                .eq("to_id",toId);
+        PostFriend postFriend = postFriendMapper.selectOne(wrapper);
+        if(postFriend == null){
+            log.error("审核好友申请失败，申请不存在");
+            return "existWrong";
+        }
+        //已审核过
+        if(postFriend.getIsPass() != 0){
+            log.error("审核好友申请失败，申请已被处理");
+            return "repeatWrong";
+        }
+        //审核好友申请
+        postFriend.setIsPass(isPass);
+        postFriendMapper.updateById(postFriend);
+        //如果通过
+        if(isPass == 1){
+            //更新好友数
+            User user = userMapper.selectById(fromId);
+            User user1 = userMapper.selectById(toId);
+            user.setFriendCounts(user.getFriendCounts() + 1);
+            user1.setFriendCounts(user1.getFriendCounts() + 1);
+            userMapper.updateById(user);
+            userMapper.updateById(user1);
+        }
+        //通知待定
+        log.info("审核好友申请成功");
+        return "success";
+    }
+
+    @Override
+    public JSONObject getPostFriend(Long id, Long cnt, Long page) {
+        return null;
+    }
+
+
 
 }

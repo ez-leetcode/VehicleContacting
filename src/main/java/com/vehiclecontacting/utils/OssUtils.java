@@ -13,7 +13,6 @@ import java.util.UUID;
 @Slf4j
 public class OssUtils {
 
-
     private static final String endpoint = "oss-cn-shenzhen.aliyuncs.com";
 
     private static final String accessKeyId = "LTAI5tAEUYp3P4DMn85ekabB";
@@ -63,10 +62,5 @@ public class OssUtils {
         ossClient.shutdown();
         log.info("oss连接已关闭");
     }
-
-
-
-
-
 
 }

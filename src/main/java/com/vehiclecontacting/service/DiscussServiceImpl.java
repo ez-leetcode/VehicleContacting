@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.vehiclecontacting.mapper.*;
 import com.vehiclecontacting.msg.*;
 import com.vehiclecontacting.pojo.*;
+import com.vehiclecontacting.utils.CommentUtils;
 import com.vehiclecontacting.utils.KeywordUtils;
 import com.vehiclecontacting.utils.OssUtils;
 import com.vehiclecontacting.utils.RedisUtils;
@@ -15,9 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -50,7 +49,7 @@ public class DiscussServiceImpl implements DiscussService{
     public static List<String> hotDiscussKeyWord = new LinkedList<>();
 
     //模板
-    public static List<String> hotDiscussKeywordTemplate;
+    public static List<String> hotDiscussKeywordTemplate = new LinkedList<>();
 
     static{
         hotDiscussKeyWord.add("小青龙");
@@ -63,7 +62,16 @@ public class DiscussServiceImpl implements DiscussService{
         hotDiscussKeyWord.add("真有你的");
         hotDiscussKeyWord.add("建议改为");
         hotDiscussKeyWord.add("吉祥物");
-        hotDiscussKeywordTemplate = hotDiscussKeyWord;
+        hotDiscussKeywordTemplate.add("小青龙");
+        hotDiscussKeywordTemplate.add("美工小姐姐");
+        hotDiscussKeywordTemplate.add("跑路了");
+        hotDiscussKeywordTemplate.add("真的该死");
+        hotDiscussKeywordTemplate.add("我恨陆茜蒙");
+        hotDiscussKeywordTemplate.add("美工产品不干活");
+        hotDiscussKeywordTemplate.add("都让前后端小哥来干");
+        hotDiscussKeywordTemplate.add("真有你的");
+        hotDiscussKeywordTemplate.add("建议改为");
+        hotDiscussKeywordTemplate.add("吉祥物");
     }
 
     public static Long hotDiscussNumber1 = 0L;
@@ -127,6 +135,35 @@ public class DiscussServiceImpl implements DiscussService{
     //通知再说
     @Override
     public String addComment(Long id, Long number, String comments, Long fatherNumber, Long replyNumber) {
+        //先判断是否被禁言
+        User user = userMapper.selectById(id);
+        if(user.getNoSpeakDate() != null && user.getNoSpeakDate().after(new Date())){
+            //已经被禁言
+            log.info("评论失败，用户已被禁言");
+            return "noSpeakWrong";
+        }else if(user.getNoSpeakDate() != null && user.getNoSpeakDate().before(new Date())){
+            //重置dirtyCounts
+            user.setDirtyCounts(0);
+            userMapper.updateById(user);
+            log.info("用户禁言已被解除，脏话次数已重置");
+        }
+        //再判断是否为垃圾话
+        boolean isDirtyTalk = CommentUtils.judgeComment(comments);
+        if(isDirtyTalk){
+            //垃圾话，加一，或者禁言
+            user.setDirtyCounts(user.getDirtyCounts() + 1);
+            if(user.getDirtyCounts() > 5){
+                //垃圾话超过5次，禁言2小时
+                Calendar calendar = Calendar.getInstance();
+                calendar.add(Calendar.HOUR,2);
+                Date date = calendar.getTime();
+                user.setNoSpeakDate(date);
+                log.info("用户垃圾话过多，已被禁言2小时");
+            }
+            userMapper.updateById(user);
+            log.info("评论失败，用户说垃圾话");
+            return "dirtyWrong";
+        }
         Discuss discuss = discussMapper.selectById(number);
         if(discuss == null){
             log.error("评论失败，帖子不存在");
@@ -861,4 +898,15 @@ public class DiscussServiceImpl implements DiscussService{
         log.info(jsonObject.toString());
         return jsonObject;
     }
+
+
+    @Override
+    public JSONObject getReopenDate(Long id) {
+        JSONObject jsonObject = new JSONObject();
+        User user = userMapper.selectById(id);
+        jsonObject.put("reSpeakDate",user.getNoSpeakDate());
+        return jsonObject;
+    }
+
+
 }

@@ -7,8 +7,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.vehiclecontacting.mapper.DiscussMapper;
 import com.vehiclecontacting.mapper.UserMapper;
 import com.vehiclecontacting.mapper.VehicleMapper;
+import com.vehiclecontacting.msg.FrozenUserMsg;
 import com.vehiclecontacting.msg.VehicleJudgeMsg;
-import com.vehiclecontacting.msg.VehicleMsg;
 import com.vehiclecontacting.pojo.Discuss;
 import com.vehiclecontacting.pojo.User;
 import com.vehiclecontacting.pojo.Vehicle;
@@ -37,6 +37,7 @@ public class AdministratorServiceImpl implements AdministratorService{
 
     @Autowired
     private DiscussMapper discussMapper;
+
 
     @Override
     public String judgeVehicle(String license, Integer isPass, String reason) {
@@ -81,7 +82,7 @@ public class AdministratorServiceImpl implements AdministratorService{
         List<VehicleJudgeMsg> vehicleMsgList = new LinkedList<>();
         for(Vehicle x:vehicleList){
             User user = userMapper.selectById(x.getId());
-            VehicleJudgeMsg vehicleJudgeMsg = new VehicleJudgeMsg(x.getLicense(),x.getType(),user.getId(),user.getUsername(),user.getPhoto(),x.getVehiclePhoto1(),user.getSex(),
+            VehicleJudgeMsg vehicleJudgeMsg = new VehicleJudgeMsg(x.getLicense(),x.getType(),x.getVehicleBrand(),user.getId(),user.getUsername(),user.getPhoto(),x.getLicensePhoto(),user.getSex(),
                     user.getVip(),x.getBackReason(),x.getUpdateTime());
             vehicleMsgList.add(vehicleJudgeMsg);
         }
@@ -103,7 +104,7 @@ public class AdministratorServiceImpl implements AdministratorService{
         Date date = new Date();
         Calendar calendar = new GregorianCalendar();
         calendar.setTime(date);
-        calendar.add(calendar.MINUTE,minutes);
+        calendar.add(Calendar.MINUTE,minutes);
         //当前时间推后minutes分钟
         user.setFrozenDate(calendar.getTime());
         user.setIsFrozen(1);
@@ -121,7 +122,7 @@ public class AdministratorServiceImpl implements AdministratorService{
             log.error("解封用户失败，用户不存在");
             return "existWrong";
         }
-        if(user.getFrozenDate().before(new Date())){
+        if(user.getFrozenDate().before(new Date()) && user.getIsFrozen() == 0){
             log.warn("解封用户失败，用户已被解封");
             return "repeatWrong";
         }
@@ -149,6 +150,44 @@ public class AdministratorServiceImpl implements AdministratorService{
         user.setDiscussCounts(user.getDiscussCounts() - 1);
         userMapper.updateById(user);
         //通知用户原因待完成
+        log.info("管理员删帖成功");
         return "success";
     }
+
+
+    @Override
+    public String frozeSpeak(Long id, Integer hours) {
+        User user = userMapper.selectById(id);
+        Calendar calendar = Calendar.getInstance();
+        Date date;
+        calendar.add(Calendar.HOUR,hours);
+        date = calendar.getTime();
+        user.setNoSpeakDate(date);
+        userMapper.updateById(user);
+        log.info("管理员禁言成功");
+        return "success";
+    }
+
+    @Override
+    public JSONObject getFrozenUser(Long cnt, Long page) {
+        JSONObject jsonObject = new JSONObject();
+        QueryWrapper<User> wrapper = new QueryWrapper<>();
+        wrapper.eq("is_frozen",1)
+                .orderByDesc("reopen_date");
+        Page<User> page1 = new Page<>(page,cnt);
+        userMapper.selectPage(page1,wrapper);
+        List<User> userList = page1.getRecords();
+        List<FrozenUserMsg> frozenUserMsgList = new LinkedList<>();
+        for(User x:userList){
+            frozenUserMsgList.add(new FrozenUserMsg(x.getId(),x.getUsername(),x.getPhoto(),x.getVip(),x.getPhone(),x.getFrozenDate(),x.getReopenDate()));
+        }
+        jsonObject.put("frozenUserList",frozenUserMsgList);
+        jsonObject.put("counts",page1.getTotal());
+        jsonObject.put("pages",page1.getPages());
+        log.info("获取封禁用户列表成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
+
 }

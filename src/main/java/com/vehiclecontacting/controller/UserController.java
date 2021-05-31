@@ -56,7 +56,7 @@ public class UserController {
             @ApiImplicitParam(name = "phone",value = "电话",required = true,dataType = "string",paramType = "query"),
             @ApiImplicitParam(name = "code",value = "验证码",required = true,dataType = "string",paramType = "query")
     })
-    @ApiOperation(value = "用户手机验证码登录",notes = "codeExistWrong：验证码不存在或已失效 existWrong：账号不存在（用户没注册）" +
+    @ApiOperation(value = "用户手机验证码登录",notes = "codeExistWrong：验证码不存在或已失效 " +
             " codeWrong：验证码错误（验证码可以不区分大小写） frozenWrong：用户已被封号（返回json带frozenDate：封号截止时间） success：成功（返回json带token：token令牌）")
     @PostMapping("/loginByCode")
     public Result<JSONObject> loginByCode(@RequestParam("phone") String phone,@RequestParam("code") String code){
@@ -396,7 +396,79 @@ public class UserController {
     }
 
 
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "被拉黑用户id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "把用户添加入黑名单",notes = "repeatWrong：已被添加进黑名单（可能是重复请求） success：成功")
+    @PostMapping("/black")
+    public Result<JSONObject> addBlack(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId){
+        log.info("正在把用户加入黑名单，fromId：" + fromId + " toId：" + toId);
+        return ResultUtils.getResult(new JSONObject(),userService.addBlack(fromId,toId));
+    }
 
 
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "被取消拉黑用户id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "把用户移除黑名单",notes = "repeatWrong：用户已被移除黑名单（可能是重复请求） success：成功")
+    @DeleteMapping("/black")
+    public Result<JSONObject> removeBlack(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId){
+        log.info("正在移除用户出黑名单，fromId：" + fromId + " toId：" + toId);
+        return ResultUtils.getResult(new JSONObject(),userService.removeBlack(fromId,toId));
+    }
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "获取用户黑名单列表",notes = "success：成功  （返回json blackList：拉黑列表 pages：总页数 counts：总数据量）")
+    @GetMapping("/black")
+    public Result<JSONObject> getBlackList(@RequestParam("id") Long id,@RequestParam("cnt") Long cnt,
+                                           @RequestParam("page") Long page){
+        log.info("正在获取用户黑名单列表，id：" + id + " cnt：" + cnt + " page：" + page);
+        return ResultUtils.getResult(userService.getBlackList(id,page,cnt),"success");
+    }
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "被加好友用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "reason",value = "申请理由",required = true,dataType = "string",paramType = "query")
+    })
+    @ApiOperation(value = "用户申请加好友（施工中）",notes = "blackWrong：被对方拉黑了 repeatWrong：已经加好友了 success：成功（对方如果已申请加你为好友则会直接加成功）")
+    @PostMapping("/friend")
+    public Result<JSONObject> addFriend(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId,
+                                        @RequestParam("reason") String reason){
+        log.info("用户正在申请加好友，fromId：" + fromId + " toId：" + toId + " reason：" + reason);
+        return ResultUtils.getResult(new JSONObject(),userService.addFriend(fromId,toId,reason));
+    }
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "申请人id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "isPass",value = "是否通过（这里特殊一点，同意1 不同意2）",required = true,dataType = "int",paramType = "query")
+    })
+    @ApiOperation(value = "审核好友是否通过（施工中）",notes = "repeatWrong：好友审核已被同意 existWrong：好友申请不存在 success：成功 申请成功好友数会加1 ")
+    @PostMapping("/judgeFriend")
+    public Result<JSONObject> judgeFriend(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId,
+                                          @RequestParam("isPass") Integer isPass){
+        log.info("正在审核好友是否通过，fromId：" + fromId + " toId：" + toId + " isPass：" + isPass);
+        return ResultUtils.getResult(new JSONObject(),userService.judgeFriend(fromId,toId,isPass));
+    }
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "获取申请加好友列表（施工中）",notes = "success：成功  返回json friendList：好友列表  pages：页面总数  counts：数据总量")
+    @GetMapping("/postFriendList")
+    public Result<JSONObject> getPostFriendList(@RequestParam("id") Long id,@RequestParam("cnt") Long cnt,
+                                                @RequestParam("page") Long page){
+        log.info("正在获取申请的好友列表，id：" + id + " cnt：" + cnt + " page：" + page);
+        return null;
+    }
 
 }

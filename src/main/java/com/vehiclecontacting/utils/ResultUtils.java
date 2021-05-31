@@ -28,6 +28,9 @@ public class ResultUtils {
         resultMap.put("phoneWrong",-1);
         resultMap.put("codeExistWrong",-1);
         resultMap.put("amountWrong",-1);
+        resultMap.put("dirtyWrong",-1);
+        resultMap.put("noSpeakWrong",-1);
+        resultMap.put("blackWrong",-1);
         //登录权限等相关失败码403
         resultMap.put("tokenWrong",403);
         resultMap.put("authorityWrong",403);
@@ -48,6 +51,5 @@ public class ResultUtils {
         result.setData(object);
         return result;
     }
-
 
 }

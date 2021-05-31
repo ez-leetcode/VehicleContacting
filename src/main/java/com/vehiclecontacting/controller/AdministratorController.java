@@ -88,5 +88,29 @@ public class AdministratorController {
         return ResultUtils.getResult(new JSONObject(),administratorService.deleteDiscuss(number,reason));
     }
 
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "被禁言用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "hours",value = "禁言时间（可以给永封按钮，给封个几万个小时的参数就行了，87600小时=10年）",required = true,dataType = "int",paramType = "query")
+    })
+    @ApiOperation(value = "管理员禁言别人",notes = "已经被禁言的，还可以重新改禁言时间，就不repeatWrong了，success：成功")
+    @PostMapping("/frozeSpeak")
+    public Result<JSONObject> frozeSpeak(@RequestParam("id") Long id,@RequestParam("hours") Integer hours){
+        log.info("正在管理员禁言别人，id：" + id + " hours：" + hours);
+        return ResultUtils.getResult(new JSONObject(),administratorService.frozeSpeak(id,hours));
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "获取被封禁用户",notes = "success：成功 （返回json frozenUserList：封禁用户信息列表 pages：页面总数 counts：数据总量）")
+    @GetMapping("/frozenList")
+    public Result<JSONObject> getFrozenList(@RequestParam("cnt") Long cnt,@RequestParam("page") Long page){
+        log.info("正在获取封禁用户，cnt：" + cnt + " page：" + page);
+        return ResultUtils.getResult(administratorService.getFrozenUser(cnt,page),"success");
+    }
+
+
 
 }

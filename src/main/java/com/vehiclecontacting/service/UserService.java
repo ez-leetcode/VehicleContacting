@@ -47,4 +47,15 @@ public interface UserService {
 
     String addFeedback(Long id,String title,String description);
 
+    String addBlack(Long fromId,Long toId);
+
+    String removeBlack(Long fromId,Long toId);
+
+    JSONObject getBlackList(Long id,Long page,Long cnt);
+
+    String addFriend(Long fromId,Long toId,String reason);
+
+    String judgeFriend(Long fromId,Long toId,Integer isPass);
+
+    JSONObject getPostFriend(Long id,Long cnt,Long page);
 }

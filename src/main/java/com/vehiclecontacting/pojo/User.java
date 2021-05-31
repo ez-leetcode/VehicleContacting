@@ -66,6 +66,15 @@ public class User {
     @ApiModelProperty(value = "被举报次数")
     private Integer complainCounts;
 
+    @ApiModelProperty(value = "说脏话次数")
+    private Integer dirtyCounts;
+
+    @ApiModelProperty(value = "黑名单人数")
+    private Integer blackCounts;
+
+    @ApiModelProperty(value = "好友数")
+    private Integer friendCounts;
+
     @ApiModelProperty(value = "vip")
     private Integer vip;
 
@@ -85,5 +94,8 @@ public class User {
 
     @ApiModelProperty("解封时间")
     private Date reopenDate;
+
+    @ApiModelProperty("禁言截止时间")
+    private Date noSpeakDate;
 
 }

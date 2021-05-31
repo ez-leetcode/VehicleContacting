@@ -77,12 +77,16 @@ public class DiscussController {
             @ApiImplicitParam(name = "fatherNumber",value = "父级评论编号（没有填0）",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "replyNumber",value = "被回复的评论编号（二级评论，没有填0）",required = true,dataType = "Long",paramType = "query")
     })
-    @ApiOperation(value = "评论帖子",notes = "existWrong：帖子或评论不存在（可能是主贴，父级评论，被回复评论） success：成功")
+    @ApiOperation(value = "评论帖子",notes = "noSpeakWrong：用户已被禁言（返回json reSpeakDate：禁言结束时间） dirtyWrong：用户说脏话（提示用户） existWrong：帖子或评论不存在（可能是主贴，父级评论，被回复评论） success：成功")
     @PostMapping("/comment")
     public Result<JSONObject> addComment(@RequestParam("id") Long id,@RequestParam("comments") String comments,@RequestParam("number") Long number,
                                          @RequestParam("fatherNumber") Long fatherNumber,@RequestParam("replyNumber") Long replyNumber){
         log.info("正在评论帖子，id：" + id + " comments：" + comments + " fatherNumber：" + fatherNumber + " replyNumber：" + replyNumber);
-        return ResultUtils.getResult(new JSONObject(),discussService.addComment(id,number,comments,fatherNumber,replyNumber));
+        String status = discussService.addComment(id,number,comments,fatherNumber,replyNumber);
+        if(status.equals("noSpeakWrong")){
+            return ResultUtils.getResult(discussService.getReopenDate(id),status);
+        }
+        return ResultUtils.getResult(new JSONObject(),status);
     }
 
 

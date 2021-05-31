@@ -1,6 +1,5 @@
 package com.vehiclecontacting.msg;
 
-
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -15,27 +14,15 @@ import java.util.Date;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-@ApiModel(description = "车辆信息搜索类")
-public class VehicleMsg {
-
-    @ApiModelProperty("车辆牌照")
-    private String license;
-
-    @ApiModelProperty("车辆类型")
-    private Integer type;
+@ApiModel(description = "黑名单消息类")
+public class BlackUserMsg {
 
     @ApiModelProperty("用户id")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long id;
 
-    @ApiModelProperty("车辆品牌")
-    private String vehicleBrand;
-
     @ApiModelProperty("用户昵称")
-    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private String username;
-
-    @ApiModelProperty("用户头像url")
-    private String photo;
 
     @ApiModelProperty("用户性别")
     private String sex;
@@ -43,7 +30,14 @@ public class VehicleMsg {
     @ApiModelProperty("用户vip")
     private Integer vip;
 
-    @ApiModelProperty("审核通过时间")
-    private Date passTime;
+    @ApiModelProperty("用户头像")
+    private String photo;
+
+    @ApiModelProperty("用户自我描述")
+    private String introduction;
+
+    @ApiModelProperty("拉黑时间")
+    private Date createTime;
+
 
 }

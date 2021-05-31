@@ -27,6 +27,9 @@ public class Vehicle {
     @ApiModelProperty("用户id")
     private Long id;
 
+    @ApiModelProperty("车辆")
+    private String vehicleBrand;
+
     @ApiModelProperty("车辆类型")
     private Integer type;
 

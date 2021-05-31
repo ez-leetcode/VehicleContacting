@@ -44,4 +44,5 @@ public class MyLogoutSuccessHandler implements LogoutSuccessHandler {
         printWriter.flush();
         printWriter.close();
     }
+
 }

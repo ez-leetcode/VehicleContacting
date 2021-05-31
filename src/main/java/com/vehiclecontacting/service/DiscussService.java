@@ -44,4 +44,6 @@ public interface DiscussService {
     JSONObject judgeCommentLike(Long id,Long number);
 
     JSONObject getHotKeyword();
+
+    JSONObject getReopenDate(Long id);
 }

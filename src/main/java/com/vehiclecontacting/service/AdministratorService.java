@@ -13,4 +13,8 @@ public interface AdministratorService {
     String reopenUser(Long id);
 
     String deleteDiscuss(Long number,String reason);
+
+    String frozeSpeak(Long id,Integer hours);
+
+    JSONObject getFrozenUser(Long cnt,Long page);
 }
