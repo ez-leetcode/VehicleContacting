@@ -10,4 +10,5 @@ public interface MomentService {
 
     String deleteMoment(Long id,Long number);
 
+    String momentLike(Long id,Long number);
 }

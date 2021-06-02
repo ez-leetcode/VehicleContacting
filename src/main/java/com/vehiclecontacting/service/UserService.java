@@ -2,7 +2,10 @@ package com.vehiclecontacting.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.vehiclecontacting.pojo.User;
+import io.swagger.models.auth.In;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 
 public interface UserService {
@@ -55,7 +58,15 @@ public interface UserService {
 
     String addFriend(Long fromId,Long toId,String reason);
 
-    String judgeFriend(Long fromId,Long toId,Integer isPass);
+    String verifyFriend(Long fromId,Long toId,Integer isPass);
 
     JSONObject getPostFriend(Long id,Long cnt,Long page);
+
+    String deleteHistory(Long id, List<Long> numbers);
+
+    String deleteFriend(Long fromId,Long toId);
+
+    JSONObject getFriendList(Long id, Integer type,Long cnt,Long page);
+
+    JSONObject judgeFriend(Long fromId,Long toId);
 }

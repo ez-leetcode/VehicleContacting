@@ -909,4 +909,89 @@ public class DiscussServiceImpl implements DiscussService{
     }
 
 
+    @Override
+    public JSONObject getOnePersonDiscuss(Long id,Long cnt,Long page) {
+        JSONObject jsonObject = new JSONObject();
+        QueryWrapper<Discuss> wrapper = new QueryWrapper<>();
+        wrapper.eq("from_id",id)
+                .orderByDesc("create_time");
+        Page<Discuss> page1 = new Page<>(page,cnt);
+        discussMapper.selectPage(page1,wrapper);
+        List<Discuss> discussList = page1.getRecords();
+        List<DiscussMsg> discussMsgList = new LinkedList<>();
+        for(Discuss x:discussList){
+            User user = userMapper.selectById(x.getFromId());
+            discussMsgList.add(new DiscussMsg(x.getNumber(),x.getPhoto1(),user.getUsername(),user.getPhoto(),x.getTitle(),
+                    x.getDescription(),x.getLikeCounts(),x.getCommentCounts(),x.getFavorCounts(),x.getScanCounts(),x.getUpdateTime()));
+        }
+        jsonObject.put("discussList",discussMsgList);
+        jsonObject.put("pages",page1.getPages());
+        jsonObject.put("counts",page1.getTotal());
+        log.info("获取个人帖子列表成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
+
+    @Override
+    public JSONObject getFavorDiscuss(Long id, Long cnt, Long page) {
+        JSONObject jsonObject = new JSONObject();
+        QueryWrapper<FavorDiscuss> wrapper = new QueryWrapper<>();
+        wrapper.eq("id",id)
+                .orderByDesc("create_time");
+        Page<FavorDiscuss> page1 = new Page<>(page,cnt);
+        favorDiscussMapper.selectPage(page1,wrapper);
+        List<FavorDiscuss> favorDiscussList = page1.getRecords();
+        List<DiscussMsg> discussMsgList = new LinkedList<>();
+        for(FavorDiscuss x:favorDiscussList){
+            User user = userMapper.selectById(x.getId());
+            Discuss discuss = discussMapper.selectDiscussWhenDeleted(x.getNumber());
+            discussMsgList.add(new DiscussMsg(discuss.getNumber(),discuss.getPhoto1(),user.getUsername(),user.getPhoto(),discuss.getTitle(),
+                    discuss.getDescription(),discuss.getLikeCounts(),discuss.getCommentCounts(),discuss.getFavorCounts(),discuss.getScanCounts(),discuss.getUpdateTime()));
+        }
+        jsonObject.put("discussList",discussMsgList);
+        jsonObject.put("pages",page1.getPages());
+        jsonObject.put("counts",page1.getTotal());
+        log.info("获取收藏帖子列表成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
+
+    @Override
+    public JSONObject getFirstPageDiscuss(Long cnt) {
+        JSONObject jsonObject = new JSONObject();
+        QueryWrapper<Discuss> wrapper = new QueryWrapper<>();
+        wrapper.orderByDesc("update_time");
+        List<Discuss> discussList = discussMapper.selectList(wrapper);
+        //取随机数
+        if(cnt > discussList.size()){
+            log.error("需求大于帖子数");
+            return null;
+        }
+        Random random = new Random();
+        List<DiscussMsg> discussMsgList = new LinkedList<>();
+        HashSet<Integer> hashSet = new HashSet<>();
+        while(cnt != 0){
+            //获取一个随机数
+            int ck = random.nextInt(discussList.size() - 1);
+            if(hashSet.contains(ck)){
+                //和以前重复
+                log.info("发现重复的ck：" + ck);
+            }else{
+                //加入hashset
+                hashSet.add(ck);
+                Discuss discuss = discussList.get(ck);
+                User user = userMapper.selectById(discuss.getFromId());
+                discussMsgList.add(new DiscussMsg(discuss.getNumber(),discuss.getPhoto1(),user.getUsername(),user.getPhoto(),discuss.getTitle(),discuss.getDescription(),
+                        discuss.getLikeCounts(),discuss.getCommentCounts(),discuss.getFavorCounts(),discuss.getScanCounts(),discuss.getUpdateTime()));
+                cnt --;
+            }
+        }
+        jsonObject.put("discussList",discussMsgList);
+        log.info("获取主页面随机帖子信息成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
 }

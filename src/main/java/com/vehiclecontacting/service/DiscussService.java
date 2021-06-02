@@ -46,4 +46,10 @@ public interface DiscussService {
     JSONObject getHotKeyword();
 
     JSONObject getReopenDate(Long id);
+
+    JSONObject getOnePersonDiscuss(Long id,Long cnt,Long page);
+
+    JSONObject getFavorDiscuss(Long id,Long cnt,Long page);
+
+    JSONObject getFirstPageDiscuss(Long cnt);
 }

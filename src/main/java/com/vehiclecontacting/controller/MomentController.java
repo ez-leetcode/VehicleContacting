@@ -11,10 +11,7 @@ import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @Api(tags = "动态管理类",protocols = "https")
@@ -24,7 +21,6 @@ public class MomentController {
 
     @Autowired
     private MomentService momentService;
-
 
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
@@ -50,7 +46,7 @@ public class MomentController {
             @ApiImplicitParam(name = "photo2",value = "图片2",dataType = "string",paramType = "query"),
             @ApiImplicitParam(name = "photo3",value = "图片3",dataType = "string",paramType = "query")
     })
-    @ApiOperation(value = "生成动态",notes = "existWrong：用户不存在 repeatWrong：24小时内发动态超过10次  success：成功")
+    @ApiOperation(value = "生成动态（朋友圈 说说好像不支持修改就不做修改接口了）",notes = "existWrong：用户不存在 repeatWrong：24小时内发动态超过10次  success：成功")
     @PostMapping("/moment")
     public Result<JSONObject> generateComment(@RequestParam("id") Long id,@RequestParam("description") String description,
                                               @RequestParam("photo1") String photo1,@RequestParam("photo2") String photo2,
@@ -71,5 +67,15 @@ public class MomentController {
         return ResultUtils.getResult(new JSONObject(), momentService.deleteMoment(id,number));
     }
 
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "number",value = "动态编号",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "动态点赞（还在施工）",notes = "existWrong：动态不存在  repeatWrong：重复点赞  success：成功")
+    @PostMapping("/momentLike")
+    public Result<JSONObject> momentLike(@RequestParam("number") Long number,@RequestParam("id") Long id){
+        log.info("正在对动态点赞，number：" + number + " id：" + id);
+        return null;
+    }
 
 }

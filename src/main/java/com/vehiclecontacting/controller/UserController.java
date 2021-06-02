@@ -1,6 +1,7 @@
 package com.vehiclecontacting.controller;
 
 import com.alibaba.fastjson.JSONObject;
+import com.vehiclecontacting.config.RabbitmqProductConfig;
 import com.vehiclecontacting.pojo.Result;
 import com.vehiclecontacting.pojo.User;
 import com.vehiclecontacting.service.MailService;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
@@ -36,6 +38,9 @@ public class UserController {
 
     @Autowired
     private RedisUtils redisUtils;
+
+    @Autowired
+    private RabbitmqProductConfig rabbitmqProductConfig;
 
 
     @ApiImplicitParams({
@@ -272,8 +277,13 @@ public class UserController {
         log.info("已创建验证码：" + yzm + " 邮箱：" + email);
         //验证码存入redis
         redisUtils.saveByMinutesTime("email" + type + "_" + email,yzm,15);
-        //发送邮件
-        mailService.sendEmail(email,yzm,"绑定邮箱");
+        //发送邮件，用rabbitmq解耦
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("email",email);
+        jsonObject.put("yzm",yzm);
+        jsonObject.put("function","绑定邮箱");
+        rabbitmqProductConfig.sendMsg(jsonObject);
+        //mailService.sendEmail(email,yzm,"绑定邮箱");
         //次数加1
         redisUtils.addKeyByTime("email" + "_" + email,2);
         return ResultUtils.getResult(new JSONObject(),"success");
@@ -308,12 +318,12 @@ public class UserController {
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
     })
-    @ApiOperation(value = "获取历史记录列表（还在施工）",notes = "success：成功 （返回json historyList（历史记录列表） pages：（页面总数） counts：（数据总量））")
+    @ApiOperation(value = "获取历史记录列表（施工完了）",notes = "success：成功 （返回json historyList（历史记录列表） pages：（页面总数） counts：（数据总量））")
     @GetMapping("/history")
     public Result<JSONObject> getHistory(@RequestParam("id") Long id,@RequestParam("cnt") Long cnt,
                                          @RequestParam("page") Long page){
         log.info("正在获取用户历史记录，id：" + id + " cnt：" + cnt + " page：" + page);
-        return ResultUtils.getResult(userService.getHistory(id,cnt,page),"success");
+        return ResultUtils.getResult(userService.getHistory(id,page,cnt),"success");
     }
 
 
@@ -387,12 +397,15 @@ public class UserController {
 
 
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query")
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "numbers",value = "历史记录中discuss编号",required = true,allowMultiple = true,dataType = "Long",paramType = "query")
     })
-    @ApiOperation(value = "批量删除历史记录（还在施工）",notes = "existWrong：历史记录不存在（可能是重复请求） success：成功")
+    @ApiOperation(value = "批量删除历史记录（施工完了）",notes = "success：成功")
     @DeleteMapping("/history")
-    public Result<JSONObject> deleteHistory(){
-        return null;
+    public Result<JSONObject> deleteHistory(@RequestParam("id") Long id,@RequestParam("numbers") List<Long> numbers) {
+        log.info("正在批量删除历史记录，id：" + id);
+        log.info(numbers.toString());
+        return ResultUtils.getResult(new JSONObject(),userService.deleteHistory(id,numbers));
     }
 
 
@@ -437,7 +450,7 @@ public class UserController {
             @ApiImplicitParam(name = "toId",value = "被加好友用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "reason",value = "申请理由",required = true,dataType = "string",paramType = "query")
     })
-    @ApiOperation(value = "用户申请加好友（施工中）",notes = "blackWrong：被对方拉黑了 repeatWrong：已经加好友了 success：成功（对方如果已申请加你为好友则会直接加成功）")
+    @ApiOperation(value = "用户申请加好友（施工完了）",notes = "blackWrong：被对方拉黑了 repeatWrong：已经加好友了 success：成功（对方如果已申请加你为好友则会直接加成功）")
     @PostMapping("/friend")
     public Result<JSONObject> addFriend(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId,
                                         @RequestParam("reason") String reason){
@@ -450,12 +463,12 @@ public class UserController {
             @ApiImplicitParam(name = "toId",value = "申请人id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "isPass",value = "是否通过（这里特殊一点，同意1 不同意2）",required = true,dataType = "int",paramType = "query")
     })
-    @ApiOperation(value = "审核好友是否通过（施工中）",notes = "repeatWrong：好友审核已被同意 existWrong：好友申请不存在 success：成功 申请成功好友数会加1 ")
-    @PostMapping("/judgeFriend")
-    public Result<JSONObject> judgeFriend(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId,
+    @ApiOperation(value = "审核好友是否通过",notes = "repeatWrong：好友审核已被同意 existWrong：好友申请不存在 success：成功 申请成功好友数会加1 ")
+    @PostMapping("/verifyFriend")
+    public Result<JSONObject> verifyFriend(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId,
                                           @RequestParam("isPass") Integer isPass){
         log.info("正在审核好友是否通过，fromId：" + fromId + " toId：" + toId + " isPass：" + isPass);
-        return ResultUtils.getResult(new JSONObject(),userService.judgeFriend(fromId,toId,isPass));
+        return ResultUtils.getResult(new JSONObject(),userService.verifyFriend(fromId,toId,isPass));
     }
 
     @ApiImplicitParams({
@@ -463,12 +476,49 @@ public class UserController {
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
     })
-    @ApiOperation(value = "获取申请加好友列表（施工中）",notes = "success：成功  返回json friendList：好友列表  pages：页面总数  counts：数据总量")
+    @ApiOperation(value = "获取申请加好友列表",notes = "success：成功  返回json postFriendList：申请加好友的列表  pages：页面总数  counts：数据总量")
     @GetMapping("/postFriendList")
     public Result<JSONObject> getPostFriendList(@RequestParam("id") Long id,@RequestParam("cnt") Long cnt,
                                                 @RequestParam("page") Long page){
         log.info("正在获取申请的好友列表，id：" + id + " cnt：" + cnt + " page：" + page);
-        return null;
+        return ResultUtils.getResult(userService.getPostFriend(id,cnt,page),"success");
+    }
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "被删除好友id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "删除好友",notes = "existWrong：好友不存在 success：成功")
+    @DeleteMapping("/friend")
+    public Result<JSONObject> deleteFriend(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId){
+        log.info("正在删除好友，id：" + fromId + " toId：" + toId);
+        return ResultUtils.getResult(new JSONObject(),userService.deleteFriend(fromId,toId));
+    }
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "type",value = "排序规则（1：按时间倒序 2：按昵称顺序）",required = true,dataType = "int",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "获取好友列表（施工完了）",notes = "success：成功 （返回json friendList：好友列表 pages：页面数 counts：数据总量）")
+    @GetMapping("/friendList")
+    public Result<JSONObject> getFriendList(@RequestParam("id") Long id,@RequestParam("type") Integer type,
+                                            @RequestParam("cnt") Long cnt,@RequestParam("page") Long page){
+        log.info("正在获取好友列表，id：" + id + " type：" + type + " cnt：" + cnt + " page：" + page);
+        return ResultUtils.getResult(userService.getFriendList(id,type,cnt,page),"success");
+    }
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "被查询用户id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "判断是否为好友（施工完了）",notes = "success：成功 （返回json  status：1是 0不是）")
+    @PostMapping("/judgeFriend")
+    public Result<JSONObject> judgeWhetherFriend(@RequestParam("fromId") Long fromId,
+                                                 @RequestParam("toId") Long toId){
+        log.info("正在判断是否为好友，fromId：" + fromId + " toId：" + toId);
+        return ResultUtils.getResult(userService.judgeFriend(fromId,toId),"success");
     }
 
 }

@@ -1,13 +1,13 @@
 package com.vehiclecontacting.service;
 
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.vehiclecontacting.msg.TalkMsg;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import javax.websocket.OnClose;
-import javax.websocket.OnError;
-import javax.websocket.OnOpen;
-import javax.websocket.Session;
+import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 //总线上的连接
 //@Component
 @Slf4j
-//@ServerEndpoint(value = "/websocket/{id}")
+@ServerEndpoint(value = "/websocket/{id}")
 public class WebsocketService {
 
     //与某个客户端连接会话，以此来给客户端发送数据
@@ -25,7 +25,7 @@ public class WebsocketService {
     private static ConcurrentHashMap<String,WebsocketService> websocketServiceConcurrentHashMap = new ConcurrentHashMap<>();
 
     //建立连接会调用这个方法
-  //  @OnOpen
+    @OnOpen
     public void onOpen(Session session, @PathParam("id") String id){
         log.info("正在建立与app的连接，用户id：" + id);
         //建立连接
@@ -36,7 +36,7 @@ public class WebsocketService {
     }
 
     //关闭连接时调用这个方法
-  //  @OnClose
+    @OnClose
     public void onClose(@PathParam("id") String id){
         log.info("正在关闭与app的连接，用户：" + id);
         websocketServiceConcurrentHashMap.remove(id);
@@ -44,15 +44,19 @@ public class WebsocketService {
     }
 
     //聊天出错时调用
-  //  @OnError
+    @OnError
     public void onEorror(Session session, Throwable error){
         log.info("app连接出现错误：" + session.getId());
         error.printStackTrace();
     }
 
-
-
-
+    //有消息从客户端发送进来
+    @OnMessage
+    public void onMessage(Session session,String message){
+        log.info("有消息从客户端发送进来");
+        JSONObject jsonObject = JSONObject.parseObject(message);
+        log.info(jsonObject.toString());
+    }
 
 
 

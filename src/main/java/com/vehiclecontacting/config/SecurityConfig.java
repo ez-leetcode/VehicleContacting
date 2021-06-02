@@ -59,6 +59,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         web.ignoring().antMatchers("/swagger-ui.html")
                 .antMatchers("/webjars/**")
                 .antMatchers("/v2/**")
+                .antMatchers("/websocket/**")
                 .antMatchers("/swagger-resources/**");
     }
 
@@ -70,6 +71,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/**").permitAll()
                 //放行swagger
                 .antMatchers("/swagger-ui.html").permitAll()
+                .antMatchers("/websocket").permitAll()
                 .antMatchers("/register").permitAll()
                 .antMatchers("/login").permitAll()
                 .antMatchers("/loginByCode").permitAll()

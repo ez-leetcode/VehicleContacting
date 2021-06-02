@@ -356,5 +356,45 @@ public class DiscussController {
         return ResultUtils.getResult(discussService.getHotKeyword(),"success");
     }
 
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "获取某人的帖子列表",notes = "success：成功 （返回json discussList：帖子列表 pages：页面总数 counts：数据总量） ")
+    @GetMapping("/userDiscuss")
+    public Result<JSONObject> getOnePersonDiscuss(@RequestParam("id") Long id,@RequestParam("cnt") Long cnt,
+                                                  @RequestParam("page") Long page){
+        log.info("正在获取某人的帖子列表，id：" + id + " cnt：" + cnt + " page：" + page);
+        return ResultUtils.getResult(discussService.getOnePersonDiscuss(id,cnt,page),"success");
+    }
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "获取收藏帖子列表",notes = "success：成功 （返回json favorDiscussList：收藏帖子列表 pages：页面总数 counts：数据总量）")
+    @GetMapping("/favorDiscuss")
+    public Result<JSONObject> getFavorDiscuss(@RequestParam("id") Long id,@RequestParam("cnt") Long cnt,
+                                              @RequestParam("page") Long page){
+        log.info("正在获取收藏帖子列表，id：" + id + " cnt：" + cnt + " page：" + page);
+        return ResultUtils.getResult(discussService.getFavorDiscuss(id,cnt,page),"success");
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "cnt",value = "需要多少个数据（注意别超过帖子总数，我给的不会重复）",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "获取主页随机帖子",notes = "success：成功 （返回json：discussList：帖子列表）（cnt大于帖子总数会返回null）")
+    @GetMapping("/firstPageDiscuss")
+    public Result<JSONObject> getFirstPageDiscuss(@RequestParam("cnt") Long cnt){
+        log.info("正在获取主页的随机帖子，cnt：" + cnt);
+        return ResultUtils.getResult(discussService.getFirstPageDiscuss(cnt),"success");
+    }
+
+
+
+
 
 }

@@ -1,5 +1,6 @@
 package com.vehiclecontacting.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.vehiclecontacting.mapper.MomentMapper;
 import com.vehiclecontacting.mapper.UserMapper;
 import com.vehiclecontacting.pojo.Moment;
@@ -87,5 +88,15 @@ public class MomentServiceImpl implements MomentService{
         log.info("删除动态成功");
         return "success";
     }
+
+    @Override
+    public String momentLike(Long id, Long number) {
+        QueryWrapper<Moment> wrapper = new QueryWrapper<>();
+        return null;
+    }
+
+
+
+
 
 }

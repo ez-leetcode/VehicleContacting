@@ -5,15 +5,14 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.vehiclecontacting.mapper.*;
-import com.vehiclecontacting.msg.BlackUserMsg;
-import com.vehiclecontacting.msg.FansMsg;
-import com.vehiclecontacting.msg.HistoryDiscussMsg;
+import com.vehiclecontacting.msg.*;
 import com.vehiclecontacting.pojo.*;
 import com.vehiclecontacting.utils.JwtUtils;
 import com.vehiclecontacting.utils.OssUtils;
 import com.vehiclecontacting.utils.RedisUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.parameters.P;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -545,7 +544,7 @@ public class UserServiceImpl implements UserService{
         for(HistoryDiscuss x:historyDiscussList){
             //给数据
             User user = userMapper.selectById(x.getId());
-            Discuss discuss = discussMapper.selectById(x.getId());
+            Discuss discuss = discussMapper.selectDiscussWhenDeleted(x.getNumber());
             historyDiscussMsgList.add(new HistoryDiscussMsg(x.getNumber(),x.getId(),user.getUsername(),user.getPhoto(),discuss.getTitle(),discuss.getDescription(),
                     discuss.getPhoto1(),discuss.getCommentCounts() - x.getCommentCounts(),discuss.getFavorCounts() - x.getFavorCounts(),discuss.getFavorCounts(),discuss.getCommentCounts(),x.getUpdateTime()));
         }
@@ -709,7 +708,7 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public String judgeFriend(Long fromId, Long toId, Integer isPass) {
+    public String verifyFriend(Long fromId, Long toId, Integer isPass) {
         QueryWrapper<PostFriend> wrapper = new QueryWrapper<>();
         wrapper.eq("from_id",fromId)
                 .eq("to_id",toId);
@@ -743,9 +742,124 @@ public class UserServiceImpl implements UserService{
 
     @Override
     public JSONObject getPostFriend(Long id, Long cnt, Long page) {
-        return null;
+        JSONObject jsonObject = new JSONObject();
+        QueryWrapper<PostFriend> wrapper = new QueryWrapper<>();
+        wrapper.eq("to_id",id)
+                .orderByAsc("is_pass")
+                .orderByDesc("update_time");
+        Page<PostFriend> page1 = new Page<>(page,cnt);
+        postFriendMapper.selectPage(page1,wrapper);
+        List<PostFriend> postFriendList = page1.getRecords();
+        List<PostFriendMsg> postFriendMsgList = new LinkedList<>();
+        for(PostFriend x:postFriendList){
+            User user = userMapper.selectById(x.getFromId());
+            postFriendMsgList.add(new PostFriendMsg(user.getId(),user.getUsername(),user.getSex(),user.getVip(),user.getPhoto(),x.getReason(),x.getIsPass(),x.getUpdateTime()));
+        }
+        jsonObject.put("postFriendList",postFriendMsgList);
+        jsonObject.put("pages",page1.getPages());
+        jsonObject.put("counts",page1.getTotal());
+        log.info("获取申请好友列表成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
+    @Override
+    public String deleteHistory(Long id, List<Long> numbers) {
+        for(Long x:numbers){
+            QueryWrapper<HistoryDiscuss> wrapper = new QueryWrapper<>();
+            wrapper.eq("number",x)
+                    .eq("id",id);
+            historyDiscussMapper.delete(wrapper);
+        }
+        log.info("批量删除帖子成功");
+        return "success";
     }
 
 
+    @Override
+    public String deleteFriend(Long fromId, Long toId) {
+        QueryWrapper<Friend> wrapper = new QueryWrapper<>();
+        wrapper.eq("id1",fromId)
+                .eq("id2",toId)
+                .or()
+                .eq("id1",toId)
+                .eq("id2",fromId);
+        Friend friend = friendMapper.selectOne(wrapper);
+        if(friend == null){
+            log.error("移除好友失败，并未加好友");
+            return "existWrong";
+        }
+        //加好友了，移除friend
+        friendMapper.delete(wrapper);
+        //改好友数量
+        User user = userMapper.selectById(fromId);
+        User user1 = userMapper.selectById(toId);
+        user.setFriendCounts(user.getFriendCounts() - 1);
+        user1.setFriendCounts(user1.getFriendCounts() - 1);
+        userMapper.updateById(user);
+        userMapper.updateById(user1);
+        log.info("移除好友列表成功");
+        //通知待定
+        return "success";
+    }
+
+    @Override
+    public JSONObject getFriendList(Long id, Integer type, Long cnt, Long page) {
+        JSONObject jsonObject = new JSONObject();
+        QueryWrapper<Friend> wrapper = new QueryWrapper<>();
+        //这里可能有问题
+        if(type == 1){
+            wrapper.eq("id1",id)
+                    .orderByDesc("create_time")
+                    .or()
+                    .eq("id2",id)
+                    .orderByDesc("create_time");
+        }else{
+            wrapper.eq("id1",id)
+                    .orderByAsc("id2")
+                    .or()
+                    .eq("id2",id)
+                    .orderByAsc("id1");
+        }
+        Page<Friend> page1 = new Page<>(page,cnt);
+        friendMapper.selectPage(page1,wrapper);
+        List<Friend> friendList = page1.getRecords();
+        List<FriendMsg> friendMsgList = new LinkedList<>();
+        for(Friend x:friendList){
+            User user;
+            if(x.getId1().equals(id)){
+                user = userMapper.selectById(x.getId2());
+            }else {
+                user = userMapper.selectById(x.getId1());
+            }
+            friendMsgList.add(new FriendMsg(user.getId(),user.getUsername(),user.getVip(),user.getPhoto(),x.getCreateTime()));
+        }
+        jsonObject.put("friendList",friendMsgList);
+        jsonObject.put("counts",page1.getTotal());
+        jsonObject.put("pages",page1.getPages());
+        log.info("获取好友列表成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
+
+    @Override
+    public JSONObject judgeFriend(Long fromId, Long toId) {
+        JSONObject jsonObject = new JSONObject();
+        QueryWrapper<Friend> wrapper = new QueryWrapper<>();
+        wrapper.eq("id1",fromId)
+                .eq("id2",toId)
+                .or()
+                .eq("id1",toId)
+                .eq("id2",fromId);
+        Friend friend = friendMapper.selectOne(wrapper);
+        if(friend == null){
+            log.info("判断是否为好友成功，他们不是好友");
+            jsonObject.put("status",0);
+        }
+        log.info("判断是否为好友成功，他们是好友");
+        jsonObject.put("status",1);
+        return jsonObject;
+    }
 
 }
