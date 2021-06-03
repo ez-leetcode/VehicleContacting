@@ -33,15 +33,17 @@ class DemoApplicationTests {
     private RabbitmqProductConfig rabbitmqProductConfig;
 
     @Test
-    void f(){
-
-    }
-
-    @Test
     void ck(){
-        Map<String,Integer> map = new HashMap<>();
-        map.put("id",12345);
-        System.out.println(map.toString());
+        String message = "{\n" +
+                "\t\"fromId\":123,\t\n" +
+                "\t\"toId\":1234,\n" +
+                "\t\"info\":\"lxm\"\n" +
+                "}";
+        System.out.println(message);
+        TalkMsg talkMsg = JSONObject.parseObject(message,TalkMsg.class);
+        System.out.println(talkMsg.getInfo());
+        System.out.println(talkMsg.toString());
+
     }
 
 }

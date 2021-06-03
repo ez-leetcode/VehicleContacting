@@ -671,7 +671,7 @@ public class UserServiceImpl implements UserService{
         if(postFriend != null && postFriend.getIsPass() == 0){
             log.info("对方已经申请加好友了，直接成为朋友");
             Friend friend1 = new Friend(fromId,toId,null);
-            friendMapper.updateById(friend1);
+            friendMapper.insert(friend1);
             //成功加好友通知待定
             //通过好友申请，直接pass
             postFriend.setIsPass(1);
@@ -695,7 +695,7 @@ public class UserServiceImpl implements UserService{
             //要考虑之前被拒绝的情况
             postFriend2.setIsPass(0);
             postFriend2.setReason(reason);
-            postFriendMapper.updateById(postFriend2);
+            postFriendMapper.update(postFriend2,wrapper2);
             log.info("翻新申请好友请求成功");
         }else{
             //没有就发送请求
@@ -711,7 +711,8 @@ public class UserServiceImpl implements UserService{
     public String verifyFriend(Long fromId, Long toId, Integer isPass) {
         QueryWrapper<PostFriend> wrapper = new QueryWrapper<>();
         wrapper.eq("from_id",fromId)
-                .eq("to_id",toId);
+                .eq("to_id",toId)
+                .eq("is_pass",0);
         PostFriend postFriend = postFriendMapper.selectOne(wrapper);
         if(postFriend == null){
             log.error("审核好友申请失败，申请不存在");
@@ -723,8 +724,10 @@ public class UserServiceImpl implements UserService{
             return "repeatWrong";
         }
         //审核好友申请
+        log.info("正在审核好友申请");
+        log.info(postFriend.toString());
         postFriend.setIsPass(isPass);
-        postFriendMapper.updateById(postFriend);
+        postFriendMapper.update(postFriend,wrapper);
         //如果通过
         if(isPass == 1){
             //更新好友数
@@ -734,6 +737,10 @@ public class UserServiceImpl implements UserService{
             user1.setFriendCounts(user1.getFriendCounts() + 1);
             userMapper.updateById(user);
             userMapper.updateById(user1);
+            //插入friend
+            Friend friend = new Friend(fromId,toId,null);
+            friendMapper.insert(friend);
+            log.info("添加好友列表成功");
         }
         //通知待定
         log.info("审核好友申请成功");
@@ -832,7 +839,7 @@ public class UserServiceImpl implements UserService{
             }else {
                 user = userMapper.selectById(x.getId1());
             }
-            friendMsgList.add(new FriendMsg(user.getId(),user.getUsername(),user.getVip(),user.getPhoto(),x.getCreateTime()));
+            friendMsgList.add(new FriendMsg(user.getId(),user.getUsername(),user.getVip(),user.getPhoto(),user.getIntroduction(),x.getCreateTime()));
         }
         jsonObject.put("friendList",friendMsgList);
         jsonObject.put("counts",page1.getTotal());
@@ -856,6 +863,7 @@ public class UserServiceImpl implements UserService{
         if(friend == null){
             log.info("判断是否为好友成功，他们不是好友");
             jsonObject.put("status",0);
+            return jsonObject;
         }
         log.info("判断是否为好友成功，他们是好友");
         jsonObject.put("status",1);

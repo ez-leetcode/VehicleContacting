@@ -730,7 +730,8 @@ public class DiscussServiceImpl implements DiscussService{
                 //有历史记录
                 historyDiscuss.setFavorCounts(discuss.getFavorCounts());
                 historyDiscuss.setCommentCounts(discuss.getCommentCounts());
-                historyDiscussMapper.updateById(historyDiscuss);
+                //这个bug
+                historyDiscussMapper.update(historyDiscuss,wrapper1);
                 log.info("更新历史记录成功");
             }else{
                 //没历史记录，创建一个

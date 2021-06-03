@@ -29,7 +29,6 @@ public class VehicleServiceImpl implements VehicleService{
     private UserMapper userMapper;
 
 
-
     @Override
     public String vehiclePhotoUpload(MultipartFile file, String id) {
         User user = userMapper.selectById(id);
@@ -41,9 +40,7 @@ public class VehicleServiceImpl implements VehicleService{
         return OssUtils.uploadPhoto(file,"vehiclePhoto");
     }
 
-
     //修改记得isPass=0
-
 
 
     @Override
@@ -150,4 +147,5 @@ public class VehicleServiceImpl implements VehicleService{
         log.info("共修改了：" + result + "条");
         return "success";
     }
+
 }

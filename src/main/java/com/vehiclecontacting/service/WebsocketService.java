@@ -1,10 +1,11 @@
 package com.vehiclecontacting.service;
 
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.vehiclecontacting.config.RabbitmqWebsocketProductConfig;
 import com.vehiclecontacting.msg.TalkMsg;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.websocket.*;
@@ -13,10 +14,17 @@ import javax.websocket.server.ServerEndpoint;
 import java.util.concurrent.ConcurrentHashMap;
 
 //总线上的连接
-//@Component
+@Component
 @Slf4j
 @ServerEndpoint(value = "/websocket/{id}")
 public class WebsocketService {
+
+    private static RabbitmqWebsocketProductConfig rabbitmqWebsocketProductConfig;
+
+    @Autowired
+    public void setRabbitmqWebsocketProductConfig(RabbitmqWebsocketProductConfig rabbitmqWebsocketProductConfig){
+        WebsocketService.rabbitmqWebsocketProductConfig = rabbitmqWebsocketProductConfig;
+    }
 
     //与某个客户端连接会话，以此来给客户端发送数据
     private Session session;
@@ -50,16 +58,30 @@ public class WebsocketService {
         error.printStackTrace();
     }
 
-    //有消息从客户端发送进来
+    //有消息从客户端发送进来，发给消息队列
     @OnMessage
     public void onMessage(Session session,String message){
         log.info("有消息从客户端发送进来");
-        JSONObject jsonObject = JSONObject.parseObject(message);
-        log.info(jsonObject.toString());
+        log.info(message);
+        log.info(session.toString());
+        //把message转成talkMsg
+        rabbitmqWebsocketProductConfig.sendMessageToFanoutExchange(message);
+        log.info("rabbitmq发送信息成功");
     }
 
 
+    public void sendMsg(TalkMsg talkMsg){
+        log.info("正在向别的用户发送消息");
+        log.info(talkMsg.toString());
+        //获取用户消息实体
+        WebsocketService websocketService = websocketServiceConcurrentHashMap.get(talkMsg.getToId().toString());
+        //如果用户存在，直接推送
+        if(websocketService != null){
+            log.info("正在给用户实时推送消息");
+            websocketService.session.getAsyncRemote().sendText(talkMsg.toString());
+            log.info("推送消息成功");
+        }
 
-
+    }
 
 }

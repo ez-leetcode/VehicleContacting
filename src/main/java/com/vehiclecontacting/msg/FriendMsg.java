@@ -31,6 +31,9 @@ public class FriendMsg {
     @ApiModelProperty("用户头像")
     private String photo;
 
+    @ApiModelProperty("个人介绍")
+    private String introduction;
+
     @ApiModelProperty("加好友时间")
     private Date createTime;
 
