@@ -1,9 +1,15 @@
 package com.vehiclecontacting.service;
 
 
-import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.vehiclecontacting.config.RabbitmqWebsocketProductConfig;
+import com.vehiclecontacting.mapper.BoxMessageMapper;
+import com.vehiclecontacting.mapper.TalkMessageMapper;
+import com.vehiclecontacting.mapper.TalkUserMapper;
 import com.vehiclecontacting.msg.TalkMsg;
+import com.vehiclecontacting.pojo.BoxMessage;
+import com.vehiclecontacting.pojo.TalkMessage;
+import com.vehiclecontacting.pojo.TalkUser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -18,6 +24,16 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @ServerEndpoint(value = "/websocket/{id}")
 public class WebsocketService {
+
+    @Autowired
+    private TalkUserMapper talkUserMapper;
+
+    @Autowired
+    private TalkMessageMapper talkMessageMapper;
+
+    @Autowired
+    private BoxMessageMapper boxMessageMapper;
+
 
     private static RabbitmqWebsocketProductConfig rabbitmqWebsocketProductConfig;
 
@@ -70,18 +86,60 @@ public class WebsocketService {
     }
 
 
+    public void sendBoxMsg(BoxMessage boxMessage){
+        log.info("正在向别的用户发送消息盒子消息");
+        log.info(boxMessage.toString());
+        WebsocketService websocketService = websocketServiceConcurrentHashMap.get(boxMessage.getId().toString());
+        if(websocketService != null){
+            log.info("正在给用户实时推送消息盒子消息");
+            websocketService.session.getAsyncRemote().sendText(boxMessage.toString());
+            log.info("消息盒子消息推送成功");
+        }
+        //存到消息盒子里
+        boxMessageMapper.insert(new BoxMessage(null,boxMessage.getId(),boxMessage.getMessage(),0,null));
+        log.info("消息盒子更新成功");
+    }
+
+
+
+
+    //发送聊天信息
     public void sendMsg(TalkMsg talkMsg){
         log.info("正在向别的用户发送消息");
         log.info(talkMsg.toString());
         //获取用户消息实体
         WebsocketService websocketService = websocketServiceConcurrentHashMap.get(talkMsg.getToId().toString());
-        //如果用户存在，直接推送
+        //如果用户在线，直接推送
         if(websocketService != null){
             log.info("正在给用户实时推送消息");
             websocketService.session.getAsyncRemote().sendText(talkMsg.toString());
             log.info("推送消息成功");
         }
-
+        //保存信息在数据库中
+        TalkMessage talkMessage = new TalkMessage(null,talkMsg.getFromId(),talkMsg.getToId(),talkMsg.getInfo(),0,0,0,0,null);
+        talkMessageMapper.insert(talkMessage);
+        //更新talkUser
+        QueryWrapper<TalkUser> wrapper = new QueryWrapper<>();
+        wrapper.eq("id1",talkMsg.getFromId())
+                .eq("id2",talkMsg.getToId())
+                .or()
+                .eq("id1",talkMsg.getToId())
+                .eq("id2",talkMsg.getFromId());
+        TalkUser talkUser = talkUserMapper.selectOne(wrapper);
+        if(talkUser == null){
+            TalkUser talkUser1 = new TalkUser(talkMsg.getFromId(),talkMsg.getToId(),0,1,0,0,talkMsg.getInfo(),null,null);
+            talkUserMapper.insert(talkUser1);
+            log.info("已创建talkUser");
+        }else{
+            //更新talkUser
+            if(talkUser.getId1().equals(talkMsg.getFromId())){
+                talkUser.setId2Read(talkUser.getId2Read() + 1);
+            }else{
+                talkUser.setId1Read(talkUser.getId1Read() + 1);
+            }
+            talkUser.setLastMessage(talkMsg.getInfo());
+            talkUserMapper.update(talkUser,wrapper);
+            log.info("talkUser更新成功");
+        }
     }
-
 }

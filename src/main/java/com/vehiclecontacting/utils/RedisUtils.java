@@ -1,5 +1,7 @@
 package com.vehiclecontacting.utils;
 
+import com.google.common.base.Preconditions;
+import com.vehiclecontacting.config.BloomFilterConfig;
 import com.vehiclecontacting.mapper.UserMapper;
 import com.vehiclecontacting.pojo.User;
 import io.jsonwebtoken.Claims;
@@ -209,6 +211,33 @@ public class RedisUtils {
         }
         log.info("8小时内热词信息：" + map.toString());
         return map;
+    }
+
+    /**
+     * 根据给定的布隆过滤器添加值
+     */
+    public <T> void addByBloomFilter(BloomFilterConfig<T> bloomFilterHelper, String key, T value) {
+        Preconditions.checkArgument(bloomFilterHelper != null, "bloomFilterHelper不能为空");
+        int[] offset = bloomFilterHelper.murmurHashOffset(value);
+        for (int i : offset) {
+            System.out.println("key : " + key + " " + "value : " + i);
+            redisTemplate.opsForValue().setBit(key, i, true);
+        }
+    }
+
+    /**
+     * 根据给定的布隆过滤器判断值是否存在
+     */
+    public <T> boolean includeByBloomFilter(BloomFilterConfig<T> bloomFilterHelper, String key, T value) {
+        Preconditions.checkArgument(bloomFilterHelper != null, "bloomFilterHelper不能为空");
+        int[] offset = bloomFilterHelper.murmurHashOffset(value);
+        for (int i : offset) {
+            System.out.println("key : " + key + " " + "value : " + i);
+            if (!redisTemplate.opsForValue().getBit(key, i)) {
+                return false;
+            }
+        }
+        return true;
     }
 
 }

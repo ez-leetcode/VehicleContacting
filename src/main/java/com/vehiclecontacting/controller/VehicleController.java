@@ -71,14 +71,14 @@ public class VehicleController {
     @ApiImplicitParams({
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query"),
-            @ApiImplicitParam(name = "type",value = "车辆类型",dataType = "int",paramType = "query"),
+            @ApiImplicitParam(name = "type",value = "车辆类型（1-4  全部填0）",required = true,dataType = "int",paramType = "query"),
             @ApiImplicitParam(name = "keyword",value = "搜索关键词",dataType = "string",paramType = "query")
     })
     @ApiOperation(value = "主页面获取车辆信息",notes = "success：成功 （返回json vehicleList（车辆相关信息列表） pages：页面总数 counts：数据总量）")
     @GetMapping("/searchVehicle")
     public Result<JSONObject> searchVehicle(@RequestParam("cnt") Long cnt,@RequestParam("page") Long page,
                                             @RequestParam(value = "keyword",required = false) String keyword,
-                                            @RequestParam(value = "type",required = false) Integer type){
+                                            @RequestParam(value = "type") Integer type){
         log.info("正在主页面获取车辆信息，keyword：" + keyword + " cnt：" + cnt + " page：" + page + " type：" + type);
         return ResultUtils.getResult(vehicleService.searchVehicle(page,cnt,keyword,type),"success");
     }

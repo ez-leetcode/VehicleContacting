@@ -13,6 +13,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -519,6 +520,20 @@ public class UserController {
                                                  @RequestParam("toId") Long toId){
         log.info("正在判断是否为好友，fromId：" + fromId + " toId：" + toId);
         return ResultUtils.getResult(userService.judgeFriend(fromId,toId),"success");
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "username",value = "用户昵称（就是keyword，也是模糊查询）",required = true,dataType = "string",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "根据用户昵称搜索用户",notes = "success：成功 （返回userList：用户列表  pages：页面数  counts：数据总量 ）")
+    @GetMapping("/searchUser")
+    public Result<JSONObject> searchUser(@RequestParam("username") String username,@RequestParam("cnt") Long cnt,
+                                         @RequestParam("page") Long page){
+        log.info("正在根据昵称搜索用户，username：" + username + " cnt：" + cnt + " page：" + page);
+        return ResultUtils.getResult(userService.searchUser(username,page,cnt),"success");
     }
 
 }

@@ -1,9 +1,7 @@
 package com.vehiclecontacting.pojo;
 
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -20,6 +18,12 @@ import java.util.Date;
 @NoArgsConstructor
 @ToString
 public class TalkMessage {
+
+
+    @ApiModelProperty("聊天编号")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    @TableId(type = IdType.ID_WORKER)
+    private Long number;
 
     @ApiModelProperty("来自用户id")
     @JsonFormat(shape = JsonFormat.Shape.STRING)

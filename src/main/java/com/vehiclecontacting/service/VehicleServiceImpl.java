@@ -73,8 +73,13 @@ public class VehicleServiceImpl implements VehicleService{
     public JSONObject searchVehicle(Long page, Long cnt, String keyword,Integer type) {
         JSONObject jsonObject = new JSONObject();
         QueryWrapper<Vehicle> wrapper = new QueryWrapper<>();
+        if(type != 0){
+            wrapper.eq("type",type);
+        }
+        if(keyword != null && !keyword.equals("")){
+            wrapper.like("license",keyword);
+        }
         wrapper.eq("is_pass",1)
-                .eq("type",type)
                 .orderByDesc("pass_time");
         Page<Vehicle> page1 = new Page<>(page,cnt);
         vehicleMapper.selectPage(page1,wrapper);

@@ -1,5 +1,6 @@
 package com.vehiclecontacting.filter;
 
+import com.vehiclecontacting.config.BloomFilterConfig;
 import com.vehiclecontacting.utils.JwtUtils;
 import com.vehiclecontacting.utils.RedisUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import java.util.Collection;
 @Slf4j
 public class MyUsernamePasswordFilter extends OncePerRequestFilter {
 
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         //尝试获取token，没有直接放行（因为没有token会没有身份不让用接口，放行无所谓）
@@ -40,6 +42,20 @@ public class MyUsernamePasswordFilter extends OncePerRequestFilter {
         WebApplicationContext applicationContext = WebApplicationContextUtils.getWebApplicationContext(request.getServletContext());
         if(applicationContext != null){
             RedisUtils redisUtils = (RedisUtils) applicationContext.getBean("redisUtils");
+            BloomFilterConfig bloomFilterConfig = (BloomFilterConfig) applicationContext.getBean("bloomFilterConfig");
+            String id = request.getHeader("id");
+            if(id != null){
+                boolean judgeExist = redisUtils.includeByBloomFilter(bloomFilterConfig,id,"xql");
+                if(!judgeExist){
+                    //id不存在
+                    //没有token,直接放行，给个游客身份（不能不给身份，会跳到默认的登录界面的）
+                    Collection<GrantedAuthority> authList = new ArrayList<>();
+                    authList.add(new SimpleGrantedAuthority("ROLE_HAC"));
+                    SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(new User("1","1",authList),null,authList));
+                    chain.doFilter(request,response);
+                    return ;
+                }
+            }
             //先查询redis数据库中是否有这个token
             //先获取token中的用户名
             String username = JwtUtils.getUsername(token);

@@ -1,6 +1,5 @@
 package com.vehiclecontacting.service;
 
-import com.alibaba.fastjson.JSONObject;
 import com.vehiclecontacting.mapper.UserMapper;
 import com.vehiclecontacting.pojo.User;
 import com.vehiclecontacting.utils.QRcodeUtils;
@@ -12,12 +11,8 @@ import javax.imageio.ImageIO;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import java.awt.image.BufferedImage;
-import java.text.DateFormat;
-import java.text.FieldPosition;
-import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
 
 @Slf4j
 @Service
@@ -35,18 +30,16 @@ public class QRcodeServiceImpl implements QRcodeService{
         }
         //根据用户信息
         String imgPath;
-        if(user.getPhoto() == null){
+        if(user.getPhoto() == null || user.getPhoto().equals("")){
             imgPath = "http://vehicle-contacting.oss-cn-shenzhen.aliyuncs.com/discussPhoto/d6c4e483-7653-441c-9514-642be92e0baf.png";
         }else{
             imgPath = user.getPhoto();
         }
         ServletOutputStream stream = response.getOutputStream();
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("id",user.getId());
         Calendar calendar = Calendar.getInstance();
         SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
-        jsonObject.put("time",dateFormat.format(calendar.getTime()));
-        BufferedImage image = QRcodeUtils.createQRcode(jsonObject.toString(),imgPath,true);
+        String info = "VehicleContacting://" + user.getId().toString() + " time://" + dateFormat.format(calendar.getTime());
+        BufferedImage image = QRcodeUtils.createQRcode(info,imgPath,true);
         ImageIO.write(image,"JPG",stream);
         stream.flush();
         stream.close();
@@ -64,7 +57,5 @@ public class QRcodeServiceImpl implements QRcodeService{
         stream.close();
         log.info("生成vip二维码成功");
     }
-
-
 
 }

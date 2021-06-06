@@ -69,4 +69,7 @@ public interface UserService {
     JSONObject getFriendList(Long id, Integer type,Long cnt,Long page);
 
     JSONObject judgeFriend(Long fromId,Long toId);
+
+    JSONObject searchUser(String username,Long page,Long cnt);
+
 }

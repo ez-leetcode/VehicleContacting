@@ -31,7 +31,7 @@ public class TalkUserMsg {
     @ApiModelProperty("用户头像")
     private String photo;
 
-    @ApiModelProperty("还有几条没回复")
+    @ApiModelProperty("还有几条没读")
     private Integer noReadCounts;
 
     @ApiModelProperty("最近的聊天语句")

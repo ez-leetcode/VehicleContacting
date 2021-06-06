@@ -19,11 +19,20 @@ public class RabbitmqProductConfig {
 
     //发送邮件
     public void sendMsg(JSONObject jsonObject){
-        log.info("正在发送消息");
+        log.info("正在发送邮件消息");
         log.info(jsonObject.toString());
         CorrelationData correlationData = new CorrelationData(UUID.randomUUID().toString());
         //把消息放入对应的路由中去
         rabbitTemplate.convertAndSend(RabbitmqConfig.EXCHANGE_NAME,RabbitmqConfig.ROUTING_KEY,jsonObject,correlationData);
+    }
+
+    //发送消息盒子的消息
+    public void sendBoxMessage(JSONObject jsonObject){
+        log.info("正在发送消息盒子消息");
+        log.info(jsonObject.toString());
+        CorrelationData correlationData = new CorrelationData(UUID.randomUUID().toString());
+        //把消息放到对应的路由中去
+        rabbitTemplate.convertAndSend(RabbitmqConfig.QUARTZ_EXCHANGE_NAME,RabbitmqConfig.QUARTZ_ROUTING_KEY,jsonObject,correlationData);
     }
 
 

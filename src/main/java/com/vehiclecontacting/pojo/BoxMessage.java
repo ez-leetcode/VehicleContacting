@@ -2,7 +2,9 @@ package com.vehiclecontacting.pojo;
 
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -13,42 +15,30 @@ import lombok.ToString;
 
 import java.util.Date;
 
-@ApiModel(description = "用户聊天角色类")
+@ApiModel(description = "消息盒子消息类")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-public class TalkUser {
+public class BoxMessage {
 
-    @ApiModelProperty("用户id1")
+    @ApiModelProperty("消息编号")
+    @TableId(type = IdType.ID_WORKER)
     @JsonFormat(shape = JsonFormat.Shape.STRING)
-    private Long id1;
+    private Long number;
 
-    @ApiModelProperty("用户id2")
+    @ApiModelProperty("用户id")
     @JsonFormat(shape = JsonFormat.Shape.STRING)
-    private Long id2;
+    private Long id;
 
-    @ApiModelProperty("用户1未读")
-    private Integer id1Read;
+    @ApiModelProperty("内容")
+    private String message;
 
-    @ApiModelProperty("用户2未读")
-    private Integer id2Read;
-
-    @ApiModelProperty("用户1删除")
-    private Integer id1Deleted;
-
-    @ApiModelProperty("用户2删除")
-    private Integer id2Deleted;
-
-    @ApiModelProperty("最后一次对话")
-    private String lastMessage;
+    @ApiModelProperty("是否已读")
+    private Integer isRead;
 
     @ApiModelProperty("创建时间")
     @TableField(fill = FieldFill.INSERT)
     private Date createTime;
-
-    @ApiModelProperty("最近一次更新时间")
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private Date updateTime;
 
 }

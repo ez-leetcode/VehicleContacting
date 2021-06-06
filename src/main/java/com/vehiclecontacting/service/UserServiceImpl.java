@@ -60,6 +60,9 @@ public class UserServiceImpl implements UserService{
     @Autowired
     private PostFriendMapper postFriendMapper;
 
+    @Autowired
+    private VehicleMapper vehicleMapper;
+
     @Override
     public String register(String phone, String code,String password) {
         String redisCode = redisUtils.getValue("1_" + phone);
@@ -869,5 +872,27 @@ public class UserServiceImpl implements UserService{
         jsonObject.put("status",1);
         return jsonObject;
     }
+
+    @Override
+    public JSONObject searchUser(String username, Long page, Long cnt) {
+        JSONObject jsonObject = new JSONObject();
+        QueryWrapper<User> wrapper = new QueryWrapper<>();
+        wrapper.like("username",username)
+                .orderByAsc("vip");
+        Page<User> page1 = new Page<>(page,cnt);
+        userMapper.selectPage(page1,wrapper);
+        List<User> userList = page1.getRecords();
+        List<UserMsg> userMsgList = new LinkedList<>();
+        for(User x:userList){
+            userMsgList.add(new UserMsg(x.getId(),x.getUsername(),x.getPhoto(),x.getSex(),x.getVip(),x.getIntroduction()));
+        }
+        jsonObject.put("userList",userMsgList);
+        jsonObject.put("counts",page1.getTotal());
+        jsonObject.put("pages",page1.getPages());
+        log.info("搜索用户信息成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
 
 }
