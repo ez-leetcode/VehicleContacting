@@ -75,6 +75,12 @@ public class User {
     @ApiModelProperty(value = "好友数")
     private Integer friendCounts;
 
+    @ApiModelProperty(value = "消息盒子未读数")
+    private Integer boxMessageCounts;
+
+    @ApiModelProperty(value = "联结数")
+    private Integer connectCounts;
+
     @ApiModelProperty(value = "vip")
     private Integer vip;
 

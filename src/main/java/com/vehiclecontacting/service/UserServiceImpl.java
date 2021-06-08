@@ -12,10 +12,8 @@ import com.vehiclecontacting.utils.OssUtils;
 import com.vehiclecontacting.utils.RedisUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.parameters.P;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Date;
@@ -62,6 +60,12 @@ public class UserServiceImpl implements UserService{
 
     @Autowired
     private VehicleMapper vehicleMapper;
+
+    @Autowired
+    private PostLinkMapper postLinkMapper;
+
+    @Autowired
+    private LinkUserMapper linkUserMapper;
 
     @Override
     public String register(String phone, String code,String password) {
@@ -751,18 +755,27 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public JSONObject getPostFriend(Long id, Long cnt, Long page) {
+    public JSONObject getPostFriend(Long id, Long cnt, Long page,Integer type) {
         JSONObject jsonObject = new JSONObject();
         QueryWrapper<PostFriend> wrapper = new QueryWrapper<>();
-        wrapper.eq("to_id",id)
-                .orderByAsc("is_pass")
-                .orderByDesc("update_time");
+        if(type == 1){
+            wrapper.eq("to_id",id)
+                    .orderByDesc("update_time");
+        }else{
+            wrapper.eq("from_id",id)
+                    .orderByDesc("update_time");
+        }
         Page<PostFriend> page1 = new Page<>(page,cnt);
         postFriendMapper.selectPage(page1,wrapper);
         List<PostFriend> postFriendList = page1.getRecords();
         List<PostFriendMsg> postFriendMsgList = new LinkedList<>();
         for(PostFriend x:postFriendList){
-            User user = userMapper.selectById(x.getFromId());
+            User user;
+            if(type == 1){
+                user = userMapper.selectById(x.getFromId());
+            }else{
+                user = userMapper.selectById(x.getToId());
+            }
             postFriendMsgList.add(new PostFriendMsg(user.getId(),user.getUsername(),user.getSex(),user.getVip(),user.getPhoto(),x.getReason(),x.getIsPass(),x.getUpdateTime()));
         }
         jsonObject.put("postFriendList",postFriendMsgList);
@@ -892,6 +905,133 @@ public class UserServiceImpl implements UserService{
         log.info("搜索用户信息成功");
         log.info(jsonObject.toString());
         return jsonObject;
+    }
+
+
+    @Override
+    public String linkUser(Long fromId, Long toId) {
+        User user = userMapper.selectById(fromId);
+        if(user.getConnectCounts() >= 3){
+            log.error("联结申请失败，用户的连接对象过多");
+            return "userWrong";
+        }
+        QueryWrapper<BlackUser> wrapper = new QueryWrapper<>();
+        wrapper.eq("from_id",toId)
+                .eq("to_id",fromId);
+        BlackUser blackUser = blackUserMapper.selectOne(wrapper);
+        if(blackUser != null){
+            log.error("联结申请失败，用户已被拉黑");
+            return "blackWrong";
+        }
+        QueryWrapper<LinkUser> wrapper2 = new QueryWrapper<>();
+        wrapper2.eq("id1",fromId)
+                .eq("id2",toId)
+                .or()
+                .eq("id1",toId)
+                .eq("id2",fromId);
+        LinkUser linkUser = linkUserMapper.selectOne(wrapper2);
+        if(linkUser != null){
+            log.error("联结申请失败，用户已连接");
+            return "repeatWrong";
+        }
+        QueryWrapper<PostLink> wrapper1 = new QueryWrapper<>();
+        wrapper1.eq("from_id",fromId)
+                .eq("to_id",toId);
+        PostLink postLink = postLinkMapper.selectOne(wrapper1);
+        if(postLink != null){
+            //更新请求
+            postLink.setIsPass(0);
+            postLinkMapper.update(postLink,wrapper1);
+        }else{
+            //申请
+            postLinkMapper.insert(new PostLink(fromId,toId,0,null,null));
+            //通知待完成
+        }
+        log.info("申请联结用户成功");
+        return "success";
+    }
+
+
+    @Override
+    public JSONObject getPostLinkUser(Long id, Long cnt, Long page, Integer type) {
+        JSONObject jsonObject = new JSONObject();
+        QueryWrapper<PostLink> wrapper = new QueryWrapper<>();
+        if(type == 1){
+            wrapper.eq("to_id",id)
+                    .orderByDesc("update_time");
+        }else{
+            wrapper.eq("from_id",id)
+                    .orderByDesc("update_time");
+        }
+        Page<PostLink> page1 = new Page<>(page,cnt);
+        postLinkMapper.selectPage(page1,wrapper);
+        List<PostLink> postLinkList = page1.getRecords();
+        List<PostLinkMsg> postLinkMsgList = new LinkedList<>();
+        for(PostLink x:postLinkList){
+            User user;
+            if(type == 1){
+                user = userMapper.selectById(x.getFromId());
+            }else{
+                user = userMapper.selectById(x.getToId());
+            }
+            postLinkMsgList.add(new PostLinkMsg(user.getId(),user.getUsername(),user.getSex(),user.getVip(),user.getPhoto(),user.getIntroduction(),x.getIsPass(),x.getUpdateTime()));
+        }
+        jsonObject.put("postUserList",postLinkMsgList);
+        jsonObject.put("counts",page1.getTotal());
+        jsonObject.put("pages",page1.getPages());
+        log.info("获取申请联结列表成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
+
+    @Override
+    public String judgeLinkUser(Long fromId, Long toId, Integer isPass) {
+        User user = userMapper.selectById(fromId);
+        User user1 = userMapper.selectById(toId);
+        if(user.getConnectCounts() >= 3 || user1.getConnectCounts() >= 3 && isPass == 1){
+            log.error("审核联结用户失败，联结人过多");
+            return "userWrong";
+        }
+        QueryWrapper<PostLink> wrapper = new QueryWrapper<>();
+        wrapper.eq("from_id",fromId)
+                .eq("to_id",toId)
+                .eq("is_pass",0);
+        PostLink postLink = postLinkMapper.selectOne(wrapper);
+        if(postLink == null){
+            log.error("审核联结用户失败，请求不存在");
+            return "existWrong";
+        }
+        QueryWrapper<LinkUser> wrapper1 = new QueryWrapper<>();
+        wrapper1.eq("id1",fromId)
+                .eq("id2",toId)
+                .or()
+                .eq("id1",toId)
+                .eq("id2",fromId);
+        LinkUser linkUser = linkUserMapper.selectOne(wrapper1);
+        if(linkUser != null){
+            log.error("审核联结用户失败，对方已是您的联系人");
+            return "repeatWrong";
+        }
+        //联结用户，通知待完成
+        if(isPass == 1){
+            //更新联结数
+            user.setConnectCounts(user.getConnectCounts() + 1);
+            user1.setConnectCounts(user1.getConnectCounts() + 1);
+            userMapper.updateById(user);
+            userMapper.updateById(user1);
+            //改变请求状态
+            postLink.setIsPass(1);
+            postLinkMapper.update(postLink,wrapper);
+            //插入联结表
+            linkUserMapper.insert(new LinkUser(fromId,toId,null));
+        }else{
+            //改变请求状态
+            postLink.setIsPass(isPass);
+            postLinkMapper.update(postLink,wrapper);
+        }
+        log.info("审核联结用户成功");
+        return "success";
     }
 
 

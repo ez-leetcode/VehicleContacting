@@ -1,5 +1,6 @@
 package com.vehiclecontacting.controller;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.vehiclecontacting.config.RabbitmqProductConfig;
 import com.vehiclecontacting.pojo.Result;
@@ -475,14 +476,15 @@ public class UserController {
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
-            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "type",value = "类型（1：别人的申请 2：自己的申请）",required = true,dataType = "int",paramType = "query")
     })
     @ApiOperation(value = "获取申请加好友列表",notes = "success：成功  返回json postFriendList：申请加好友的列表  pages：页面总数  counts：数据总量")
     @GetMapping("/postFriendList")
     public Result<JSONObject> getPostFriendList(@RequestParam("id") Long id,@RequestParam("cnt") Long cnt,
-                                                @RequestParam("page") Long page){
-        log.info("正在获取申请的好友列表，id：" + id + " cnt：" + cnt + " page：" + page);
-        return ResultUtils.getResult(userService.getPostFriend(id,cnt,page),"success");
+                                                @RequestParam("page") Long page,@RequestParam("type") Integer type){
+        log.info("正在获取申请的好友列表，id：" + id + " cnt：" + cnt + " page：" + page + " type：" + type);
+        return ResultUtils.getResult(userService.getPostFriend(id,cnt,page,type),"success");
     }
 
     @ApiImplicitParams({
@@ -535,5 +537,45 @@ public class UserController {
         log.info("正在根据昵称搜索用户，username：" + username + " cnt：" + cnt + " page：" + page);
         return ResultUtils.getResult(userService.searchUser(username,page,cnt),"success");
     }
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "接收id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "申请联结用户",notes = "userWrong：用户连接已达到3个  blackWrong：用户在黑名单内  repeatWrong：已在连接列表内  success：成功")
+    @PostMapping("/linkUser")
+    public Result<JSONObject> linkUser(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId){
+        log.info("正在申请联结用户，fromId：" + fromId + " toId：" + toId);
+        return ResultUtils.getResult(new JSONObject(),userService.linkUser(fromId,toId));
+    }
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "type",value = "类型（1：别人请求的 2：自己发出的）",required = true,dataType = "int",paramType = "query")
+    })
+    @ApiOperation(value = "获取申请联结用户列表",notes = "success：成功 （返回json postUserList：用户列表 pages：页面数 counts：数据总量）")
+    @GetMapping("/postLinkUser")
+    public Result<JSONObject> getPostLinkUser(@RequestParam("id") Long id,@RequestParam("cnt") Long cnt,
+                                              @RequestParam("page") Long page,@RequestParam("type") Integer type){
+        log.info("正在获取申请联结的用户列表，id：" + id + " page：" + page + " cnt：" + cnt + " type：" + type);
+        return ResultUtils.getResult(userService.getPostLinkUser(id,cnt,page,type),"success");
+    }
+
+
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "来自哪个用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "自己的用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "isPass",value = "是否通过（1：通过 2：不通过）",required = true,dataType = "int",paramType = "query")
+    })
+    @ApiOperation(value = "审核联结申请",notes = "repeatWrong：对方已经联结 existWrong：请求不存在或已被审核 userWrong：用户或对方已拥有3个联结用户 success：成功")
+    @PostMapping("/judgeLinkUser")
+    public Result<JSONObject> judgeLinkUser(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId,
+                                            @RequestParam("isPass") Integer isPass){
+        log.info("正在审核联结申请，fromId：" + fromId + " toId：" + toId + " isPass：" + isPass);
+        return ResultUtils.getResult(new JSONObject(),userService.judgeLinkUser(fromId,toId,isPass));
+    }
+
 
 }

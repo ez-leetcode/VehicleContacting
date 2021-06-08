@@ -4,7 +4,9 @@ import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.vehiclecontacting.mapper.BoxMessageMapper;
+import com.vehiclecontacting.mapper.UserMapper;
 import com.vehiclecontacting.pojo.BoxMessage;
+import com.vehiclecontacting.pojo.User;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,9 @@ public class BoxServiceImpl implements BoxService{
 
     @Autowired
     private BoxMessageMapper boxMessageMapper;
+
+    @Autowired
+    private UserMapper userMapper;
 
     //加个消息盒子数
 
@@ -51,6 +56,9 @@ public class BoxServiceImpl implements BoxService{
             boxMessageMapper.updateById(x);
         }
         //数量待完成
+        User user = userMapper.selectById(id);
+        user.setBoxMessageCounts(0);
+        userMapper.updateById(user);
         log.info("已读所有消息成功");
         return "success";
     }
@@ -58,10 +66,18 @@ public class BoxServiceImpl implements BoxService{
 
     @Override
     public String deleteBoxMessage(Long id, List<Long> numbers) {
+        User user = userMapper.selectById(id);
+        int cnt = 0;
         for(Long x:numbers){
+            BoxMessage boxMessage = boxMessageMapper.selectById(x);
+            if(boxMessage != null && boxMessage.getIsRead() == 0){
+                //未读
+                cnt ++;
+            }
             boxMessageMapper.deleteById(x);
-            //数量待完成
         }
+        user.setBoxMessageCounts(user.getBoxMessageCounts() - cnt);
+        userMapper.updateById(user);
         log.info("批量删除消息盒子的数据成功");
         return "success";
     }
@@ -71,5 +87,9 @@ public class BoxServiceImpl implements BoxService{
     public void addBoxMessage(Long id, String message) {
         boxMessageMapper.insert(new BoxMessage(null,id,message,0,null));
         log.info("添加消息盒子成功");
+        User user = userMapper.selectById(id);
+        user.setBoxMessageCounts(user.getBoxMessageCounts() + 1);
+        userMapper.updateById(user);
+        log.info("更新未读条数成功");
     }
 }

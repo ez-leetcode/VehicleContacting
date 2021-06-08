@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RabbitListener(bindings = @QueueBinding(value = @Queue(value = RabbitmqWebsocketConfig.BROADCAST_QUEUE_NAME,durable = "true"),
-        exchange = @Exchange(value = RabbitmqWebsocketConfig.FANOUT_EXCHANGE_NAME)))
+        exchange = @Exchange(value = RabbitmqWebsocketConfig.FANOUT_EXCHANGE_NAME,type = "fanout")))
 public class RabbitmqWebsocketConsumerConfig {
 
     //注入websocket
