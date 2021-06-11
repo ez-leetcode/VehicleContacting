@@ -12,6 +12,5 @@ public interface BoxService {
 
     String deleteBoxMessage(Long id, List<Long> numbers);
 
-    void addBoxMessage(Long id,String message);
-
+    void addBoxMessage(Long id,String message,String title);
 }

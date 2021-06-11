@@ -28,24 +28,25 @@ public class MyUsernamePasswordFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         //尝试获取token，没有直接放行（因为没有token会没有身份不让用接口，放行无所谓）
+        WebApplicationContext applicationContext = WebApplicationContextUtils.getWebApplicationContext(request.getServletContext());
         String token = request.getHeader("token");
-        if(token == null){
+        if(token == null || token.equals("")){
             //没有token,直接放行，给个游客身份（不能不给身份，会跳到默认的登录界面的）
             Collection<GrantedAuthority> authList = new ArrayList<>();
-            authList.add(new SimpleGrantedAuthority("ROLE_YK"));
+            authList.add(new SimpleGrantedAuthority("ROLE_USER"));
             SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(new User("1","1",authList),null,authList));
             chain.doFilter(request,response);
             return ;
         }
         log.info("正在进行身份验证");
         //有token则获取身份信息
-        WebApplicationContext applicationContext = WebApplicationContextUtils.getWebApplicationContext(request.getServletContext());
         if(applicationContext != null){
             RedisUtils redisUtils = (RedisUtils) applicationContext.getBean("redisUtils");
             BloomFilterConfig bloomFilterConfig = (BloomFilterConfig) applicationContext.getBean("bloomFilterConfig");
             String id = request.getHeader("id");
             if(id != null){
-                boolean judgeExist = redisUtils.includeByBloomFilter(bloomFilterConfig,id,"xql");
+                //从布隆过滤器
+                boolean judgeExist = redisUtils.includeByBloomFilter(bloomFilterConfig,"xql",id);
                 if(!judgeExist){
                     //id不存在
                     //没有token,直接放行，给个游客身份（不能不给身份，会跳到默认的登录界面的）
@@ -69,11 +70,11 @@ public class MyUsernamePasswordFilter extends OncePerRequestFilter {
                 log.info("正在赋予身份信息");
                 UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = redisUtils.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
-                //判断token有效时间是否小于15分钟，是则重置token有效时间至1小时
-                if(!redisUtils.isAfterDate(username,15)){
+                //判断token有效时间是否小于300分钟，是则重置token有效时间至24小时
+                if(!redisUtils.isAfterDate(username,300)){
                     //重置token有效时间
                     log.info("token时间不足，正在重置token有效时间，token：" + token);
-                    redisUtils.resetExpire(username,token,1);
+                    redisUtils.resetExpire(username,token,24 * 60);
                     log.info("token时间已被重置成功");
                 }
             }else{

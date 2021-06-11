@@ -1,6 +1,8 @@
 package com.vehiclecontacting.utils;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
+import com.google.common.hash.Funnel;
 import com.vehiclecontacting.config.BloomFilterConfig;
 import com.vehiclecontacting.mapper.UserMapper;
 import com.vehiclecontacting.pojo.User;
@@ -9,6 +11,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -238,6 +241,11 @@ public class RedisUtils {
             }
         }
         return true;
+    }
+
+    @Bean
+    public BloomFilterConfig<String> initBloomFilterHelper() {
+        return new BloomFilterConfig<>((Funnel<String>) (from, into) -> into.putString(from, Charsets.UTF_8).putString(from, Charsets.UTF_8), 1000000, 0.01);
     }
 
 }

@@ -3,13 +3,14 @@ package com.vehiclecontacting.service;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.vehiclecontacting.mapper.UserMapper;
-import com.vehiclecontacting.mapper.VehicleMapper;
+import com.vehiclecontacting.config.RabbitmqProductConfig;
+import com.vehiclecontacting.mapper.*;
 import com.vehiclecontacting.msg.VehicleMsg;
 import com.vehiclecontacting.msg.VehicleMsg1;
-import com.vehiclecontacting.pojo.User;
-import com.vehiclecontacting.pojo.Vehicle;
+import com.vehiclecontacting.pojo.*;
 import com.vehiclecontacting.utils.OssUtils;
+import com.vehiclecontacting.utils.RedisUtils;
+import io.swagger.models.auth.In;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,21 @@ public class VehicleServiceImpl implements VehicleService{
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private BlackUserMapper blackUserMapper;
+
+    @Autowired
+    private RabbitmqProductConfig rabbitmqProductConfig;
+
+    @Autowired
+    private RedisUtils redisUtils;
+
+    @Autowired
+    private LinkUserMapper linkUserMapper;
+
+    @Autowired
+    private ComplainVehicleMapper complainVehicleMapper;
+
 
     @Override
     public String vehiclePhotoUpload(MultipartFile file, String id) {
@@ -40,8 +56,16 @@ public class VehicleServiceImpl implements VehicleService{
         return OssUtils.uploadPhoto(file,"vehiclePhoto");
     }
 
-    //修改记得isPass=0
-
+    @Override
+    public String complainVehiclePhotoUpload(MultipartFile file, String id) {
+        User user = userMapper.selectById(id);
+        if(user == null){
+            log.error("上传车辆图片失败，用户不存在");
+            return "existWrong";
+        }
+        //上传阿里云oss
+        return OssUtils.uploadPhoto(file,"complainVehiclePhoto");
+    }
 
     @Override
     public String generateVehicle(Long id, Integer type, String license, String licensePhoto, String vehiclePhoto1, String vehiclePhoto2, String vehiclePhoto3, String description, String vehicleBrand) {
@@ -152,5 +176,89 @@ public class VehicleServiceImpl implements VehicleService{
         log.info("共修改了：" + result + "条");
         return "success";
     }
+
+
+    @Override
+    public String remindUser(Long fromId, Long toId,String content) {
+        User user = userMapper.selectById(fromId);
+        QueryWrapper<BlackUser> wrapper = new QueryWrapper<>();
+        wrapper.eq("from_id",toId)
+                .eq("to_id",fromId);
+        BlackUser blackUser = blackUserMapper.selectOne(wrapper);
+        if(blackUser != null){
+            log.error("提醒用户失败，用户已被拉入黑名单");
+            return "blackWrong";
+        }
+        String cnt = redisUtils.getValue("remind_" + fromId);
+        if(cnt != null){
+            int counts = Integer.parseInt(cnt);
+            if(counts >= 5){
+                log.error("提醒用户失败，用户被提醒太多次");
+                return "repeatWrong";
+            }
+        }
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("id",toId);
+        jsonObject.put("title","紧急通知");
+        jsonObject.put("message","用户：" + user.getUsername() + "正在焦急等待您的回复，请及时回复！" + "\n" + "相关信息：" + content);
+        rabbitmqProductConfig.sendBoxMessage(jsonObject);
+        //更新次数
+        redisUtils.addKeyByTime("remind_" + fromId,2);
+        log.info("提醒用户成功");
+        return "success";
+    }
+
+
+    @Override
+    public String remindUserConnect(Long fromId, Long toId) {
+        User user = userMapper.selectById(fromId);
+        User user1 = userMapper.selectById(toId);
+        QueryWrapper<BlackUser> wrapper = new QueryWrapper<>();
+        wrapper.eq("from_id",toId)
+                .eq("to_id",fromId);
+        BlackUser blackUser = blackUserMapper.selectOne(wrapper);
+        if(blackUser != null){
+            log.error("提醒用户亲友失败，用户已被拉入黑名单");
+            return "blackWrong";
+        }
+        String cnt = redisUtils.getValue("remindConnector_" + fromId);
+        if(cnt != null){
+            int count = Integer.parseInt(cnt);
+            if(count >= 5){
+                log.error("提醒用户亲友失败，短期内提醒太多次");
+                return "repeatWrong";
+            }
+        }
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("title","一则紧急的寻友通知");
+        jsonObject.put("message","用户：" + user.getUsername() + "正在急切寻找您的亲友：" + user1.getUsername() + "，请有空帮忙联系一下，谢谢！");
+        QueryWrapper<LinkUser> wrapper1 = new QueryWrapper<>();
+        wrapper1.eq("id1",toId)
+                .or()
+                .eq("id2",toId);
+        List<LinkUser> linkUserList = linkUserMapper.selectList(wrapper1);
+        for(LinkUser x:linkUserList){
+            if(x.getId1().equals(toId) && !x.getId2().equals(fromId)){
+                jsonObject.put("id",x.getId2());
+                rabbitmqProductConfig.sendBoxMessage(jsonObject);
+            }else if(x.getId2().equals(toId) && !x.getId1().equals(fromId)){
+                jsonObject.put("id",x.getId1());
+                rabbitmqProductConfig.sendBoxMessage(jsonObject);
+            }
+        }
+        redisUtils.addKeyByTime("remindConnector_" + fromId,2);
+        log.info("提醒用户亲友成功");
+        return "success";
+    }
+
+    @Override
+    public String complainVehicle(Long id, String reason, String photo, String license) {
+        ComplainVehicle complainVehicle = new ComplainVehicle(null,id,license,reason,photo,null,0,null);
+        complainVehicleMapper.insert(complainVehicle);
+        log.info("申诉车辆成功");
+        return "success";
+    }
+
+
 
 }

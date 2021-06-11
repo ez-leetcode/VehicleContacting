@@ -12,6 +12,7 @@ import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,6 +29,7 @@ public class DiscussController {
     private DiscussService discussService;
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "title",value = "帖子主题",required = true,dataType = "string",paramType = "query"),
@@ -59,6 +61,7 @@ public class DiscussController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query")
@@ -70,6 +73,7 @@ public class DiscussController {
         return ResultUtils.getResult(new JSONObject(),discussService.deleteDiscuss(id,number));
     }
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query"),
@@ -168,7 +172,7 @@ public class DiscussController {
     }
 
 
-
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "photo",required = true,dataType = "file",paramType = "query")
     })
@@ -186,7 +190,7 @@ public class DiscussController {
     }
 
 
-
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "id",value = "收藏用户id",required = true,dataType = "Long",paramType = "query"),
@@ -198,6 +202,7 @@ public class DiscussController {
         return ResultUtils.getResult(new JSONObject(),discussService.addFavorDiscuss(number,id));
     }
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "id",value = "收藏用户id",required = true,dataType = "Long",paramType = "query")
@@ -210,6 +215,7 @@ public class DiscussController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "number",value = "评论编号",required = true,dataType = "Long",paramType = "query")
@@ -222,6 +228,7 @@ public class DiscussController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "number",value = "评论编号",required = true,dataType = "Long",paramType = "query")
@@ -233,6 +240,8 @@ public class DiscussController {
         return ResultUtils.getResult(new JSONObject(),discussService.deleteLikeComment(number,id));
     }
 
+
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query")
@@ -245,6 +254,7 @@ public class DiscussController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query")
@@ -256,7 +266,7 @@ public class DiscussController {
         return ResultUtils.getResult(new JSONObject(),discussService.likeDiscuss(number,id));
     }
 
-
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query")
@@ -333,6 +343,7 @@ public class DiscussController {
         return ResultUtils.getResult(discussService.getHotDiscuss(),"success");
     }
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "number",value = "评论编号",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query")
@@ -356,6 +367,7 @@ public class DiscussController {
         return ResultUtils.getResult(discussService.getHotKeyword(),"success");
     }
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
@@ -369,6 +381,7 @@ public class DiscussController {
         return ResultUtils.getResult(discussService.getOnePersonDiscuss(id,cnt,page),"success");
     }
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
@@ -392,9 +405,6 @@ public class DiscussController {
         log.info("正在获取主页的随机帖子，cnt：" + cnt);
         return ResultUtils.getResult(discussService.getFirstPageDiscuss(cnt),"success");
     }
-
-
-
 
 
 }

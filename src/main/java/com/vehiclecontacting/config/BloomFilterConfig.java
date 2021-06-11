@@ -1,8 +1,11 @@
 package com.vehiclecontacting.config;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.hash.Funnel;
 import com.google.common.hash.Hashing;
+import org.springframework.context.annotation.Bean;
+import org.springframework.stereotype.Component;
 
 //布隆过滤器配置
 public class BloomFilterConfig<T> {
@@ -54,5 +57,6 @@ public class BloomFilterConfig<T> {
     private int optimalNumOfHashFunctions(long n, long m) {
         return Math.max(1, (int) Math.round((double) m / n * Math.log(2)));
     }
+
 
 }

@@ -1,15 +1,22 @@
 package com.vehiclecontacting.service;
 
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.vehiclecontacting.config.RabbitmqWebsocketProductConfig;
 import com.vehiclecontacting.mapper.BoxMessageMapper;
 import com.vehiclecontacting.mapper.TalkMessageMapper;
 import com.vehiclecontacting.mapper.TalkUserMapper;
+import com.vehiclecontacting.mapper.UserMapper;
+import com.vehiclecontacting.msg.SystemMsg;
 import com.vehiclecontacting.msg.TalkMsg;
+import com.vehiclecontacting.msg.WebsocketMsg;
 import com.vehiclecontacting.pojo.BoxMessage;
 import com.vehiclecontacting.pojo.TalkMessage;
 import com.vehiclecontacting.pojo.TalkUser;
+import com.vehiclecontacting.pojo.User;
+import com.vehiclecontacting.utils.TalkResultUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -34,6 +41,11 @@ public class WebsocketService {
     @Autowired
     private BoxMessageMapper boxMessageMapper;
 
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private BoxService boxService;
 
     private static RabbitmqWebsocketProductConfig rabbitmqWebsocketProductConfig;
 
@@ -85,22 +97,27 @@ public class WebsocketService {
         log.info("rabbitmq发送信息成功");
     }
 
+    //判断是否在线  true：在线  false：不在线
+    public boolean judgeOnline(Long id){
+        WebsocketService websocketService = websocketServiceConcurrentHashMap.get(id.toString());
+        return websocketService != null;
+    }
 
     public void sendBoxMsg(BoxMessage boxMessage){
         log.info("正在向别的用户发送消息盒子消息");
         log.info(boxMessage.toString());
         WebsocketService websocketService = websocketServiceConcurrentHashMap.get(boxMessage.getId().toString());
-        if(websocketService != null){
+        User user = userMapper.selectById(boxMessage.getId());
+        if(websocketService != null && user.getIsNoDisturb() == 0){
             log.info("正在给用户实时推送消息盒子消息");
-            websocketService.session.getAsyncRemote().sendText(boxMessage.toString());
+            SystemMsg systemMsg = new SystemMsg(boxMessage.getTitle(),boxMessage.getMessage());
+            websocketService.session.getAsyncRemote().sendText(TalkResultUtils.getResult(JSON.parseObject(systemMsg.toString()),"systemInfoSuccess").toString());
             log.info("消息盒子消息推送成功");
         }
+        boxService.addBoxMessage(boxMessage.getId(),boxMessage.getMessage(),boxMessage.getTitle());
         //存到消息盒子里
-        boxMessageMapper.insert(new BoxMessage(null,boxMessage.getId(),boxMessage.getMessage(),0,null));
         log.info("消息盒子更新成功");
     }
-
-
 
 
     //发送聊天信息
@@ -110,9 +127,12 @@ public class WebsocketService {
         //获取用户消息实体
         WebsocketService websocketService = websocketServiceConcurrentHashMap.get(talkMsg.getToId().toString());
         //如果用户在线，直接推送
-        if(websocketService != null){
+        User user1 = userMapper.selectById(talkMsg.getToId());
+        if(websocketService != null && user1.getIsNoDisturb() == 0){
             log.info("正在给用户实时推送消息");
-            websocketService.session.getAsyncRemote().sendText(talkMsg.toString());
+            User user = userMapper.selectById(talkMsg.getFromId());
+            WebsocketMsg websocketMsg = new WebsocketMsg(talkMsg.getFromId(),user.getPhoto(),user.getUsername(),talkMsg.getInfo());
+            websocketService.session.getAsyncRemote().sendText(TalkResultUtils.getResult(JSON.parseObject(websocketMsg.toString()),"receiveInfoSuccess").toString());
             log.info("推送消息成功");
         }
         //保存信息在数据库中
@@ -140,6 +160,13 @@ public class WebsocketService {
             talkUser.setLastMessage(talkMsg.getInfo());
             talkUserMapper.update(talkUser,wrapper);
             log.info("talkUser更新成功");
+        }
+        //返回一个回执
+        WebsocketService websocketService1 = websocketServiceConcurrentHashMap.get(talkMsg.getFromId().toString());
+        if(websocketService1 != null){
+            log.info("正在给用户同步发送回执");
+            websocketService1.session.getAsyncRemote().sendText(TalkResultUtils.getResult(new JSONObject(),"sendInfoSuccess").toString());
+            log.info("给用户同步发送回执成功");
         }
     }
 }

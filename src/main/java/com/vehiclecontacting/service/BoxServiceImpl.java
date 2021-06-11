@@ -84,12 +84,14 @@ public class BoxServiceImpl implements BoxService{
 
 
     @Override
-    public void addBoxMessage(Long id, String message) {
-        boxMessageMapper.insert(new BoxMessage(null,id,message,0,null));
+    public void addBoxMessage(Long id, String message, String title) {
+        //待完成
+        boxMessageMapper.insert(new BoxMessage(null,id,title,message,0,null));
         log.info("添加消息盒子成功");
         User user = userMapper.selectById(id);
         user.setBoxMessageCounts(user.getBoxMessageCounts() + 1);
         userMapper.updateById(user);
         log.info("更新未读条数成功");
     }
+
 }

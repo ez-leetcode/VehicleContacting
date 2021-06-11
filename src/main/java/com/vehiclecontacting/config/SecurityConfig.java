@@ -85,15 +85,19 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .loginProcessingUrl("/login")
                 .usernameParameter("phone")
                 .passwordParameter("password")
+                //登录成功处理器
                 .successHandler(myAuthenticationSuccessHandler)
+                //登录失败处理器
                 .failureHandler(myAuthenticationFailureHandler)
                 .permitAll()
                 .and()
                 .logout()
                 .logoutUrl("/logout")
+                //注销成功处理器
                 .logoutSuccessHandler(myLogoutSuccessHandler)
                 .and()
                 .exceptionHandling()
+                //身份认证出错处理器
                 .accessDeniedHandler(myAccessDeniedHandler);
     }
 }

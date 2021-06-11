@@ -6,4 +6,5 @@ public interface MailService {
 
     void sendJudgeEmail(String email,String license,Integer isPass,String reason);
 
+    //void sendVehicleEmail(String email,String username);
 }

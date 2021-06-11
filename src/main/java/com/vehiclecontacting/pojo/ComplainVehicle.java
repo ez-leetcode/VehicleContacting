@@ -15,30 +15,36 @@ import lombok.ToString;
 
 import java.util.Date;
 
-@ApiModel(description = "消息盒子消息类")
+@ApiModel(description = "车辆申诉类")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-public class BoxMessage {
+public class ComplainVehicle {
 
-    @ApiModelProperty("消息编号")
-    @TableId(type = IdType.ID_WORKER)
+    @ApiModelProperty("申诉编号")
     @JsonFormat(shape = JsonFormat.Shape.STRING)
+    @TableId(type = IdType.ID_WORKER)
     private Long number;
 
     @ApiModelProperty("用户id")
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long id;
 
-    @ApiModelProperty("标题")
-    private String title;
+    @ApiModelProperty("车牌")
+    private String license;
 
-    @ApiModelProperty("内容")
-    private String message;
+    @ApiModelProperty("理由")
+    private String reason;
 
-    @ApiModelProperty("是否已读")
-    private Integer isRead;
+    @ApiModelProperty("图片url")
+    private String photo;
+
+    @ApiModelProperty("退回理由")
+    private String backReason;
+
+    @ApiModelProperty("是否通过")
+    private Integer isPass;
 
     @ApiModelProperty("创建时间")
     @TableField(fill = FieldFill.INSERT)

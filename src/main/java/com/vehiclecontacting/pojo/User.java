@@ -81,6 +81,9 @@ public class User {
     @ApiModelProperty(value = "联结数")
     private Integer connectCounts;
 
+    @ApiModelProperty(value = "是否免打扰")
+    private Integer isNoDisturb;
+
     @ApiModelProperty(value = "vip")
     private Integer vip;
 

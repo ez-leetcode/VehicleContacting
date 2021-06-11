@@ -14,8 +14,8 @@ import java.util.Date;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-@ApiModel(description = "申请联结类")
-public class PostLinkMsg {
+@ApiModel(description = "用户联结类")
+public class LinkUserMsg {
 
     @ApiModelProperty("用户id")
     @JsonFormat(shape = JsonFormat.Shape.STRING)
@@ -24,25 +24,31 @@ public class PostLinkMsg {
     @ApiModelProperty("用户昵称")
     private String username;
 
-    @ApiModelProperty("用户性别")
+    @ApiModelProperty("性别")
     private String sex;
 
-    @ApiModelProperty("用户vip")
-    private Integer vip;
-
-    @ApiModelProperty("用户头像")
+    @ApiModelProperty("头像")
     private String photo;
-
-    @ApiModelProperty("用户自我介绍")
-    private String introduction;
 
     @ApiModelProperty("关系")
     private String relationship;
 
-    @ApiModelProperty("申请状态")
-    private Integer isPass;
+    @ApiModelProperty("自我介绍")
+    private String introduction;
 
-    @ApiModelProperty("申请时间")
+    @ApiModelProperty("车牌1")
+    private String license1;
+
+    @ApiModelProperty("车牌2")
+    private String license2;
+
+    @ApiModelProperty("车牌3")
+    private String license3;
+
+    @ApiModelProperty("车牌4")
+    private String license4;
+
+    @ApiModelProperty("创建时间")
     private Date createTime;
 
 }

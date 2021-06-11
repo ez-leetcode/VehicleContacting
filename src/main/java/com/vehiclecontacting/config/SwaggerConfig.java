@@ -52,6 +52,7 @@ public class SwaggerConfig {
                 null,
                 new ArrayList<>()
         );
+
     }
 
 }

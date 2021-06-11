@@ -4,7 +4,6 @@ package com.vehiclecontacting.controller;
 import com.alibaba.fastjson.JSONObject;
 import com.vehiclecontacting.pojo.Result;
 import com.vehiclecontacting.service.AdministratorService;
-import com.vehiclecontacting.utils.RedisUtils;
 import com.vehiclecontacting.utils.ResultUtils;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
@@ -12,6 +11,7 @@ import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
 @Api(tags = "管理员管理类",protocols = "https")
@@ -23,10 +23,8 @@ public class AdministratorController {
     @Autowired
     private AdministratorService administratorService;
 
-    @Autowired
-    private RedisUtils redisUtils;
 
-
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "license",value = "车牌号",required = true,dataType = "string",paramType = "query"),
             @ApiImplicitParam(name = "isPass",value = "是否通过（1：通过 2：审核不通过，多带一个参数原因）",required = true,dataType = "int",paramType = "query"),
@@ -41,6 +39,7 @@ public class AdministratorController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query"),
@@ -55,6 +54,7 @@ public class AdministratorController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "被封禁用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "minutes",value = "封禁时间（按分钟为单位吧）",required = true,dataType = "int",paramType = "query")
@@ -67,6 +67,7 @@ public class AdministratorController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "被解封人的id",required = true,dataType = "Long",paramType = "query")
     })
@@ -77,6 +78,7 @@ public class AdministratorController {
         return ResultUtils.getResult(new JSONObject(),administratorService.reopenUser(id));
     }
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "number",value = "帖子编号",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "reason",value = "删帖原因（用于通知）",required = true,dataType = "string",paramType = "query")
@@ -88,6 +90,8 @@ public class AdministratorController {
         return ResultUtils.getResult(new JSONObject(),administratorService.deleteDiscuss(number,reason));
     }
 
+
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "被禁言用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "hours",value = "禁言时间（可以给永封按钮，给封个几万个小时的参数就行了，87600小时=10年）",required = true,dataType = "int",paramType = "query")
@@ -100,6 +104,7 @@ public class AdministratorController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query")
@@ -111,6 +116,39 @@ public class AdministratorController {
         return ResultUtils.getResult(administratorService.getFrozenUser(cnt,page),"success");
     }
 
+    @Secured("ROLE_USER")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "isPass",value = "是否通过（0：给没通过的 1：给通过的 2：给拒绝的 3：给全部）",required = true,dataType = "int",paramType = "query"),
+            @ApiImplicitParam(name = "keyword",value = "搜索关键词（不想做就不提交这个参数）",dataType = "string",paramType = "query")
+    })
+    @ApiOperation(value = "获取用户申诉车牌列表",notes = "success：成功  返回json：complainVehicleList：申诉车牌列表  pages：页面总数  counts：数据总量")
+    @GetMapping("/complainVehicle")
+    public Result<JSONObject> getComplainVehicle(@RequestParam("id") Long id,@RequestParam("cnt") Long cnt,
+                                                 @RequestParam("page") Long page,@RequestParam("isPass") Integer isPass,
+                                                 @RequestParam(value = "keyword",required = false) String keyword){
+        log.info("正在获取用户申诉车牌列表，id：" + id + " cnt：" + cnt + " page：" + page + " isPass：" + isPass + " keyword：" + keyword);
+        return ResultUtils.getResult(administratorService.getComplainVehicleList(id,cnt,page,isPass,keyword),"success");
+    }
+
+
+    @Secured("ROLE_USER")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "number",value = "车辆申诉编号",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "isPass",value = "是否通过（1：通过 2：拒绝）",required = true,dataType = "int",paramType = "query"),
+            @ApiImplicitParam(name = "backReason",value = "退回原因",dataType = "string",paramType = "query")
+    })
+    @ApiOperation(value = "审核用户车辆申诉（会有推送）",notes = "repeatWrong：已经被审核过 existWrong：申诉不存在 success：成功")
+    @PostMapping("/complainVehicle")
+    public Result<JSONObject> judgeComplainVehicle(@RequestParam("id") Long id,@RequestParam("number") Long number,
+                                                   @RequestParam("isPass") Integer isPass,
+                                                   @RequestParam(value = "backReason",required = false) String backReason){
+        log.info("正在审核用户车辆申诉，id：" + id + " number：" + number + " isPass：" + isPass + " backReason：" + backReason);
+        return ResultUtils.getResult(new JSONObject(),administratorService.judgeComplainVehicle(id,number,isPass,backReason));
+    }
 
 
 }

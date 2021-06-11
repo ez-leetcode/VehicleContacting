@@ -52,4 +52,5 @@ public interface DiscussService {
     JSONObject getFavorDiscuss(Long id,Long cnt,Long page);
 
     JSONObject getFirstPageDiscuss(Long cnt);
+
 }

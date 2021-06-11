@@ -11,6 +11,7 @@ import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class BoxController {
     @Autowired
     private BoxService boxService;
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
@@ -38,6 +40,7 @@ public class BoxController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query")
     })
@@ -48,6 +51,8 @@ public class BoxController {
         return ResultUtils.getResult(new JSONObject(),boxService.readAllBox(id));
     }
 
+
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "numbers",value = "消息编号",required = true,allowMultiple = true,dataType = "Long",paramType = "query")

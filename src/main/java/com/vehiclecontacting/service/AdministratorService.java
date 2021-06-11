@@ -17,4 +17,8 @@ public interface AdministratorService {
     String frozeSpeak(Long id,Integer hours);
 
     JSONObject getFrozenUser(Long cnt,Long page);
+
+    JSONObject getComplainVehicleList(Long id,Long cnt,Long page,Integer isPass,String keyword);
+
+    String judgeComplainVehicle(Long id,Long number,Integer isPass,String backReason);
 }

@@ -1,11 +1,13 @@
 package com.vehiclecontacting.service;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.vehiclecontacting.mapper.TalkMessageMapper;
 import com.vehiclecontacting.mapper.TalkUserMapper;
 import com.vehiclecontacting.mapper.UserMapper;
+import com.vehiclecontacting.msg.TalkHeadMsg;
 import com.vehiclecontacting.msg.TalkP2PMsg;
 import com.vehiclecontacting.msg.TalkUserMsg;
 import com.vehiclecontacting.pojo.TalkMessage;
@@ -31,7 +33,8 @@ public class TalkServiceImpl implements TalkService{
     @Autowired
     private TalkMessageMapper talkMessageMapper;
 
-
+    @Autowired
+    private WebsocketService websocketService;
 
     @Override
     public JSONObject getTalkList(Long id, Long cnt, Long page) {
@@ -256,5 +259,26 @@ public class TalkServiceImpl implements TalkService{
         log.info(jsonObject.toString());
         return jsonObject;
     }
+
+
+
+    @Override
+    public JSONObject judgeTalkHead(Long fromId, Long toId) {
+        JSONObject jsonObject = new JSONObject();
+        boolean judge = websocketService.judgeOnline(toId);
+        User user = userMapper.selectById(toId);
+        TalkHeadMsg talkHeadMsg = new TalkHeadMsg(toId,user.getUsername(),null);
+        if(judge){
+            talkHeadMsg.setIsOnline(1);
+        }else{
+            talkHeadMsg.setIsOnline(0);
+        }
+        jsonObject.put("userMsg",talkHeadMsg);
+        log.info("获取用户在线信息成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
+
 
 }

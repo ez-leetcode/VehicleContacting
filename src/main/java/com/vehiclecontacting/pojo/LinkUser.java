@@ -28,6 +28,9 @@ public class LinkUser {
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long id2;
 
+    @ApiModelProperty("关系")
+    private String relationship;
+
     @ApiModelProperty("联结时间")
     @TableField(fill = FieldFill.INSERT)
     private Date createTime;

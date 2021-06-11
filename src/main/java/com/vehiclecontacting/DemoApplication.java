@@ -1,14 +1,16 @@
 package com.vehiclecontacting;
 
-import org.mybatis.spring.annotation.MapperScan;
+import com.google.common.base.Charsets;
+import com.google.common.hash.Funnel;
+import com.vehiclecontacting.config.BloomFilterConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 
-@MapperScan("com.vehiclecontacting.mapper")
 //redis缓存中间键
 @EnableCaching
 //配置定时任务

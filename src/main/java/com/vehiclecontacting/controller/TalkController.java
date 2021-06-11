@@ -8,6 +8,7 @@ import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.util.PerformanceSensitive;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class TalkController {
     private TalkService talkService;
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
@@ -34,6 +36,7 @@ public class TalkController {
         return ResultUtils.getResult(talkService.getTalkList(id,cnt,page),"success");
     }
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query")
     })
@@ -44,6 +47,7 @@ public class TalkController {
         return ResultUtils.getResult(new JSONObject(),talkService.allRead(id));
     }
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "toId",value = "对方id",required = true,dataType = "Long",paramType = "query")
@@ -55,8 +59,7 @@ public class TalkController {
         return ResultUtils.getResult(new JSONObject(),talkService.isRead(fromId,toId));
     }
 
-
-
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "toId",value = "被删除用户id",required = true,dataType = "Long",paramType = "query")
@@ -68,7 +71,7 @@ public class TalkController {
         return ResultUtils.getResult(new JSONObject(),talkService.deletedTalk(fromId,toId));
     }
 
-
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "toId",value = "对方id",required = true,dataType = "Long",paramType = "query"),
@@ -82,6 +85,7 @@ public class TalkController {
         return ResultUtils.getResult(new JSONObject(),talkService.deleteTalkMsg(fromId,toId,numbers));
     }
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "toId",value = "对方id",required = true,dataType = "Long",paramType = "query"),
@@ -94,6 +98,18 @@ public class TalkController {
                                              @RequestParam("cnt") Long cnt,@RequestParam("page") Long page){
         log.info("正在获取用户一对一聊天列表，fromId：" + fromId + " toId：" + toId + " cnt：" + cnt + " page：" + page);
         return ResultUtils.getResult(talkService.getP2PTalkList(fromId,toId,page,cnt),"success");
+    }
+
+    @Secured("ROLE_USER")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "对方id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "获取用户是否在线，昵称等信息（私聊上方）",notes = "success：成功  返回json userMsg")
+    @GetMapping("/talkHead")
+    public Result<JSONObject> judgeTalkHead(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId){
+        log.info("正在获取用户是否在线，昵称等信息，fromId：" + fromId + " toId：" + toId);
+        return ResultUtils.getResult(talkService.judgeTalkHead(fromId,toId),"success");
     }
 
 

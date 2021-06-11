@@ -28,6 +28,9 @@ public class PostLink {
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Long toId;
 
+    @ApiModelProperty("关系")
+    private String relationship;
+
     @ApiModelProperty("是否通过")
     private Integer isPass;
 

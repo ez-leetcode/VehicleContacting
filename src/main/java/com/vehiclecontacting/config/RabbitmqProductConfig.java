@@ -17,6 +17,7 @@ public class RabbitmqProductConfig {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
+
     //发送邮件
     public void sendMsg(JSONObject jsonObject){
         log.info("正在发送邮件消息");
@@ -32,7 +33,7 @@ public class RabbitmqProductConfig {
         log.info(jsonObject.toString());
         CorrelationData correlationData = new CorrelationData(UUID.randomUUID().toString());
         //把消息放到对应的路由中去
-        rabbitTemplate.convertAndSend(RabbitmqConfig.QUARTZ_EXCHANGE_NAME,RabbitmqConfig.QUARTZ_ROUTING_KEY,jsonObject,correlationData);
+        rabbitTemplate.convertAndSend(RabbitmqConfig.BOX_EXCHANGE_NAME,RabbitmqConfig.BOX_ROUTING_KEY,jsonObject,correlationData);
     }
 
 

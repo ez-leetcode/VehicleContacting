@@ -4,6 +4,8 @@ package com.vehiclecontacting.service;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.vehiclecontacting.config.BloomFilterConfig;
+import com.vehiclecontacting.config.RabbitmqProductConfig;
 import com.vehiclecontacting.mapper.*;
 import com.vehiclecontacting.msg.*;
 import com.vehiclecontacting.pojo.*;
@@ -16,6 +18,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -66,6 +70,12 @@ public class UserServiceImpl implements UserService{
 
     @Autowired
     private LinkUserMapper linkUserMapper;
+
+    @Autowired
+    private RabbitmqProductConfig rabbitmqProductConfig;
+
+    @Autowired
+    private BloomFilterConfig bloomFilterConfig;
 
     @Override
     public String register(String phone, String code,String password) {
@@ -121,7 +131,7 @@ public class UserServiceImpl implements UserService{
 
 
     @Override
-    public String patchUser(Long id, String username, String sex,String introduction) {
+    public String patchUser(Long id, String username, String sex,String introduction,Integer isNoDisturb) {
         User user = userMapper.selectById(id);
         if(user == null){
             log.error("修改用户信息失败，用户不存在：" + id);
@@ -132,6 +142,7 @@ public class UserServiceImpl implements UserService{
         user1.setSex(sex);
         user1.setId(id);
         user1.setIntroduction(introduction);
+        user1.setIsNoDisturb(isNoDisturb);
         int result = userMapper.updateById(user1);
         if(result == 0){
             log.warn("修改用户信息出现问题，可能是重复请求：" + id);
@@ -186,6 +197,11 @@ public class UserServiceImpl implements UserService{
             log.info("创建新用户成功");
             log.info("短信登录验证成功（还帮人家注册了）");
             redisUtils.delete("4_" + phone);
+            //存入布隆过滤器
+            QueryWrapper<User> wrapper1 = new QueryWrapper<>();
+            wrapper1.eq("phone",phone);
+            User user2 = userMapper.selectOne(wrapper1);
+            redisUtils.addByBloomFilter(bloomFilterConfig,"xql",user2.getId());
             return "success";
         }
         if(user.getFrozenDate() != null && user.getFrozenDate().after(new Date())){
@@ -342,6 +358,10 @@ public class UserServiceImpl implements UserService{
         user1.setFansCounts(user1.getFansCounts() + 1);
         userMapper.updateById(user);
         userMapper.updateById(user1);
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("id",toId);
+        jsonObject.put("title","粉丝通知");
+        jsonObject.put("message","用户：" + user.getUsername() + "关注了您");
         log.info("添加用户关注成功");
         return "success";
     }
@@ -550,8 +570,8 @@ public class UserServiceImpl implements UserService{
         List<HistoryDiscussMsg> historyDiscussMsgList = new LinkedList<>();
         for(HistoryDiscuss x:historyDiscussList){
             //给数据
-            User user = userMapper.selectById(x.getId());
             Discuss discuss = discussMapper.selectDiscussWhenDeleted(x.getNumber());
+            User user = userMapper.selectById(discuss.getFromId());
             historyDiscussMsgList.add(new HistoryDiscussMsg(x.getNumber(),x.getId(),user.getUsername(),user.getPhoto(),discuss.getTitle(),discuss.getDescription(),
                     discuss.getPhoto1(),discuss.getCommentCounts() - x.getCommentCounts(),discuss.getFavorCounts() - x.getFavorCounts(),discuss.getFavorCounts(),discuss.getCommentCounts(),x.getUpdateTime()));
         }
@@ -695,6 +715,13 @@ public class UserServiceImpl implements UserService{
             userMapper.updateById(user);
             userMapper.updateById(user1);
             log.info("好友数更新成功");
+            Calendar calendar = Calendar.getInstance();
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("id",fromId);
+            jsonObject.put("title","好友通知");
+            jsonObject.put("message","用户：" + user1.getUsername() + "(" + user1.getId() + ")" + "已于" + dateFormat.format(calendar.getTime()) + "接受您的好友请求，成功加为好友!");
+            rabbitmqProductConfig.sendBoxMessage(jsonObject);
             return "success";
         }
         //看看有没有之前的请求，有就翻新
@@ -710,6 +737,12 @@ public class UserServiceImpl implements UserService{
             postFriendMapper.insert(postFriend1);
             log.info("发送请求成功");
         }
+        User user = userMapper.selectById(fromId);
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("id",toId);
+        jsonObject.put("title","好友申请");
+        jsonObject.put("message","用户：" + user.getUsername() + "申请加您为好友");
+        rabbitmqProductConfig.sendBoxMessage(jsonObject);
         log.info("申请加好友成功");
         return "success";
     }
@@ -736,6 +769,8 @@ public class UserServiceImpl implements UserService{
         postFriend.setIsPass(isPass);
         postFriendMapper.update(postFriend,wrapper);
         //如果通过
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         if(isPass == 1){
             //更新好友数
             User user = userMapper.selectById(fromId);
@@ -748,6 +783,18 @@ public class UserServiceImpl implements UserService{
             Friend friend = new Friend(fromId,toId,null);
             friendMapper.insert(friend);
             log.info("添加好友列表成功");
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("id",fromId);
+            jsonObject.put("message","用户：" + user1.getUsername() + "(" + user1.getId() + ")" + "已于" + dateFormat.format(calendar.getTime()) + "接受您的好友请求，成功加为好友!");
+            jsonObject.put("title","好友通知");
+            rabbitmqProductConfig.sendBoxMessage(jsonObject);
+        }else{
+            User user1 = userMapper.selectById(toId);
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("id",fromId);
+            jsonObject.put("message","用户：" + user1.getUsername() + "(" + user1.getId() + ")" + "已于" + dateFormat.format(calendar.getTime()) + "拒绝了您的好友请求!");
+            jsonObject.put("title","好友通知");
+            rabbitmqProductConfig.sendBoxMessage(jsonObject);
         }
         //通知待定
         log.info("审核好友申请成功");
@@ -823,6 +870,13 @@ public class UserServiceImpl implements UserService{
         userMapper.updateById(user1);
         log.info("移除好友列表成功");
         //通知待定
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("id",toId);
+        jsonObject.put("message","用户：" + user.getUsername() + "(" + user.getId() + ")" + "已于" + dateFormat.format(calendar.getTime()) + "解除了与您的好友关系!");
+        jsonObject.put("title","好友通知");
+        rabbitmqProductConfig.sendBoxMessage(jsonObject);
         return "success";
     }
 
@@ -909,7 +963,7 @@ public class UserServiceImpl implements UserService{
 
 
     @Override
-    public String linkUser(Long fromId, Long toId) {
+    public String linkUser(Long fromId, Long toId, String relationship) {
         User user = userMapper.selectById(fromId);
         if(user.getConnectCounts() >= 3){
             log.error("联结申请失败，用户的连接对象过多");
@@ -941,10 +995,11 @@ public class UserServiceImpl implements UserService{
         if(postLink != null){
             //更新请求
             postLink.setIsPass(0);
+            postLink.setRelationship(relationship);
             postLinkMapper.update(postLink,wrapper1);
         }else{
             //申请
-            postLinkMapper.insert(new PostLink(fromId,toId,0,null,null));
+            postLinkMapper.insert(new PostLink(fromId,toId,relationship,0,null,null));
             //通知待完成
         }
         log.info("申请联结用户成功");
@@ -974,7 +1029,8 @@ public class UserServiceImpl implements UserService{
             }else{
                 user = userMapper.selectById(x.getToId());
             }
-            postLinkMsgList.add(new PostLinkMsg(user.getId(),user.getUsername(),user.getSex(),user.getVip(),user.getPhoto(),user.getIntroduction(),x.getIsPass(),x.getUpdateTime()));
+            postLinkMsgList.add(new PostLinkMsg(user.getId(),user.getUsername(),user.getSex(),user.getVip(),user.getPhoto(),user.getIntroduction(),
+                    x.getRelationship(),x.getIsPass(),x.getUpdateTime()));
         }
         jsonObject.put("postUserList",postLinkMsgList);
         jsonObject.put("counts",page1.getTotal());
@@ -1014,6 +1070,8 @@ public class UserServiceImpl implements UserService{
             return "repeatWrong";
         }
         //联结用户，通知待完成
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         if(isPass == 1){
             //更新联结数
             user.setConnectCounts(user.getConnectCounts() + 1);
@@ -1024,14 +1082,128 @@ public class UserServiceImpl implements UserService{
             postLink.setIsPass(1);
             postLinkMapper.update(postLink,wrapper);
             //插入联结表
-            linkUserMapper.insert(new LinkUser(fromId,toId,null));
+            linkUserMapper.insert(new LinkUser(fromId,toId,postLink.getRelationship(),null));
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("title","用户联结审核通知");
+            jsonObject.put("message","用户：" + user1.getUsername() + "(" + user1.getId() + ")" + "已于" + dateFormat.format(calendar.getTime()) + "同意了您的联结请求");
+            jsonObject.put("id",fromId);
+            rabbitmqProductConfig.sendBoxMessage(jsonObject);
         }else{
             //改变请求状态
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("title","用户联结审核通知");
+            jsonObject.put("message","用户：" + user1.getUsername() + "(" + user1.getId() + ")" + "已于" + dateFormat.format(calendar.getTime()) + "拒绝了您的联结请求");
+            jsonObject.put("id",fromId);
+            rabbitmqProductConfig.sendBoxMessage(jsonObject);
             postLink.setIsPass(isPass);
             postLinkMapper.update(postLink,wrapper);
         }
         log.info("审核联结用户成功");
         return "success";
+    }
+
+    @Override
+    public JSONObject getLinkUser(Long id) {
+        JSONObject jsonObject = new JSONObject();
+        QueryWrapper<LinkUser> wrapper = new QueryWrapper<>();
+        wrapper.eq("id1",id)
+                .orderByAsc("create_time")
+                .or()
+                .eq("id2",id)
+                .orderByAsc("create_time");
+        List<LinkUser> linkUserList = linkUserMapper.selectList(wrapper);
+        List<LinkUserMsg> linkUserMsgList = new LinkedList<>();
+        for(LinkUser x:linkUserList){
+            User user;
+            if(x.getId1().equals(id)){
+                user = userMapper.selectById(x.getId2());
+            }else{
+                user = userMapper.selectById(x.getId1());
+            }
+            LinkUserMsg linkUserMsg = new LinkUserMsg(user.getId(),user.getUsername(),user.getSex(),user.getPhoto(),x.getRelationship(),user.getIntroduction(),null,null,null,null,x.getCreateTime());
+            QueryWrapper<Vehicle> wrapper1 = new QueryWrapper<>();
+            wrapper1.eq("id",id)
+                    .eq("is_pass",1)
+                    .orderByDesc("create_time");
+            List<Vehicle> vehicleList = vehicleMapper.selectList(wrapper1);
+            int cnt = 1;
+            for(Vehicle k:vehicleList){
+                if(cnt == 1){
+                    linkUserMsg.setLicense1(k.getLicense());
+                }else if(cnt == 2){
+                    linkUserMsg.setLicense2(k.getLicense());
+                }else if(cnt == 3){
+                    linkUserMsg.setLicense3(k.getLicense());
+                }else if(cnt == 4){
+                    linkUserMsg.setLicense4(k.getLicense());
+                }else{
+                    break;
+                }
+                cnt ++;
+            }
+            linkUserMsgList.add(linkUserMsg);
+        }
+        jsonObject.put("linkUserList",linkUserMsgList);
+        log.info("获取联结用户列表成功");
+        log.info(jsonObject.toString());
+        return jsonObject;
+    }
+
+
+    @Override
+    public String deleteLinkUser(Long fromId, Long toId) {
+        QueryWrapper<LinkUser> wrapper = new QueryWrapper<>();
+        wrapper.eq("id1",fromId)
+                .eq("id2",toId)
+                .or()
+                .eq("id1",toId)
+                .eq("id2",fromId);
+        LinkUser linkUser = linkUserMapper.selectOne(wrapper);
+        if(linkUser == null){
+            log.error("移除用户联结失败，联结不存在");
+            return "existWrong";
+        }
+        //移除联结
+        linkUserMapper.delete(wrapper);
+        //更新用户数据
+        User user = userMapper.selectById(fromId);
+        User user1 = userMapper.selectById(toId);
+        user.setConnectCounts(user.getConnectCounts() - 1);
+        user1.setConnectCounts(user1.getConnectCounts() - 1);
+        userMapper.updateById(user);
+        userMapper.updateById(user1);
+        //消息盒子待完成
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("id",toId);
+        jsonObject.put("title","联结关系解除通知");
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat= new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        jsonObject.put("message","用户：" + user.getUsername() + "(" + user.getId() + ")" +"已于" + dateFormat.format(calendar.getTime()) + "与您解除联结关系！");
+        rabbitmqProductConfig.sendBoxMessage(jsonObject);
+        log.info("移除联结关系成功");
+        return "success";
+    }
+
+
+
+    @Override
+    public JSONObject judgeLink(Long fromId, Long toId) {
+        JSONObject jsonObject = new JSONObject();
+        QueryWrapper<LinkUser> wrapper = new QueryWrapper<>();
+        wrapper.eq("id1",fromId)
+                .eq("id2",toId)
+                .or()
+                .eq("id1",toId)
+                .eq("id2",fromId);
+        LinkUser linkUser = linkUserMapper.selectOne(wrapper);
+        if(linkUser == null){
+            log.info("判断联结关系成功，用户并非联结关系");
+            jsonObject.put("status",0);
+        }else{
+            log.info("判断联结关系成功，用户是联结关系");
+            jsonObject.put("status",1);
+        }
+        return jsonObject;
     }
 
 

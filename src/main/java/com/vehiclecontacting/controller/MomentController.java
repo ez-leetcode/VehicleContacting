@@ -11,6 +11,7 @@ import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,6 +23,7 @@ public class MomentController {
     @Autowired
     private MomentService momentService;
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "photo",value = "图片",required = true,dataType = "file",paramType = "body")
@@ -39,6 +41,7 @@ public class MomentController {
         return ResultUtils.getResult(jsonObject,"success");
     }
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "description",value = "内容",required = true,dataType = "string",paramType = "query"),
@@ -55,7 +58,7 @@ public class MomentController {
         return ResultUtils.getResult(new JSONObject(),momentService.generateMoment(id,description,photo1,photo2,photo3));
     }
 
-
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "number",value = "动态编号",required = true,dataType = "Long",paramType = "query")
@@ -67,6 +70,7 @@ public class MomentController {
         return ResultUtils.getResult(new JSONObject(), momentService.deleteMoment(id,number));
     }
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "number",value = "动态编号",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query")

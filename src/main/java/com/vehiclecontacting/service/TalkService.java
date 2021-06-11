@@ -17,4 +17,6 @@ public interface TalkService {
     String deleteTalkMsg(Long fromId, Long toId, List<Long> numbers);
 
     JSONObject getP2PTalkList(Long fromId,Long toId,Long page,Long cnt);
+
+    JSONObject judgeTalkHead(Long fromId,Long toId);
 }

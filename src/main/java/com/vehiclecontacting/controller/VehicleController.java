@@ -10,6 +10,7 @@ import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,6 +24,7 @@ public class VehicleController {
     private VehicleService vehicleService;
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "type",value = "车辆类型（1：油车 2：电车 3：油电混合 4：小电驴）",required = true,dataType = "string",paramType = "query"),
@@ -48,7 +50,7 @@ public class VehicleController {
     }
 
 
-
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "photo",value = "图片文件",required = true,dataType = "file",paramType = "body"),
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "string",paramType = "query")
@@ -67,7 +69,27 @@ public class VehicleController {
         return ResultUtils.getResult(jsonObject,"success");
     }
 
+    @Secured("ROLE_USER")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "photo",value = "图片文件",required = true,dataType = "file",paramType = "body"),
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "string",paramType = "query")
+    })
+    @ApiOperation(value = "申诉车辆图片上传",notes = "existWrong：用户不存在 fileWrong：文件为空 typeWrong：上传格式错误 success：成功，成功后返回json：url（图片url）")
+    @PostMapping("/complainVehiclePhoto")
+    public Result<JSONObject> complainVehiclePhotoUpload(@RequestParam("id") String id, @RequestParam("photo") MultipartFile file){
+        String realId = id.substring(1,id.length() - 1);
+        log.info("正在上传申诉车辆图片，id：" + realId);
+        String url = vehicleService.complainVehiclePhotoUpload(file,realId);
+        if(url.length() < 12){
+            return ResultUtils.getResult(new JSONObject(),url);
+        }
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("url",url);
+        return ResultUtils.getResult(jsonObject,"success");
+    }
 
+
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "page",value = "当前页面",required = true,dataType = "Long",paramType = "query"),
@@ -84,6 +106,7 @@ public class VehicleController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query")
     })
@@ -95,6 +118,7 @@ public class VehicleController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "license",value = "车牌",required = true,dataType = "string",paramType = "query")
@@ -106,7 +130,7 @@ public class VehicleController {
         return ResultUtils.getResult(new JSONObject(),vehicleService.deleteVehicle(id,license));
     }
 
-
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "license",value = "已上传过的车辆牌照",required = true,dataType = "string",paramType = "query"),
@@ -132,6 +156,50 @@ public class VehicleController {
                 " vehiclePhoto1：" + vehiclePhoto1 + " vehiclePhoto2：" + vehiclePhoto2 + " vehiclePhoto3：" + vehiclePhoto3 + " vehicleBrand：" + vehicleBrand);
         return ResultUtils.getResult(new JSONObject(),vehicleService.patchVehicle(id,license,licensePhoto,description,type,vehiclePhoto1,vehiclePhoto2,vehiclePhoto3,vehicleBrand));
     }
+
+
+    @Secured("ROLE_USER")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "被提醒用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "content",value = "提醒内容（我们拟定一下常用的让他们选择，怕他们说脏话。。）",required = true,dataType = "string",paramType = "query")
+    })
+    @ApiOperation(value = "提醒用户回复信息",notes = "repeatWrong：2小时内超过5次太频繁 blackWrong：被拉黑了 success：成功")
+    @PostMapping("/remindUser")
+    public Result<JSONObject> remindUser(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId,
+                                         @RequestParam("content") String content){
+        log.info("正在提醒用户信息，fromId：" + fromId + " toId：" + toId + " content：" + content);
+        return ResultUtils.getResult(new JSONObject(),vehicleService.remindUser(fromId,toId,content));
+    }
+
+    @Secured("ROLE_USER")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "对方id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "提醒用户的亲友联系他",notes = "repeatWrong：2小时内超过2次太频繁 blackWrong：被拉黑了 success：成功")
+    @PostMapping("/remindConnector")
+    public Result<JSONObject> remindUserConnector(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId){
+        log.info("正在提醒用户亲友联系他，fromId：" + fromId + " toId：" + toId);
+        return ResultUtils.getResult(new JSONObject(),vehicleService.remindUserConnect(fromId,toId));
+    }
+
+    @Secured("ROLE_USER")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "license",value = "车牌",required = true,dataType = "string",paramType = "query"),
+            @ApiImplicitParam(name = "reason",value = "申诉理由",required = true,dataType = "string",paramType = "query"),
+            @ApiImplicitParam(name = "photo",value = "申诉材料图片",required = true,dataType = "string",paramType = "query")
+    })
+    @ApiOperation(value = "申诉车牌",notes = "success：成功")
+    @PostMapping("/complainVehicle")
+    public Result<JSONObject> complainVehicle(@RequestParam("id") Long id,@RequestParam("license") String license,
+                                              @RequestParam("reason") String reason,@RequestParam("photo") String photo){
+        log.info("用户正在申诉车牌，id：" + id + " license：" + license + " reason：" + reason + " photo：" + photo);
+        return ResultUtils.getResult(new JSONObject(),vehicleService.complainVehicle(id,reason,photo,license));
+    }
+
+
 
 
 }

@@ -1,6 +1,5 @@
 package com.vehiclecontacting.controller;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.vehiclecontacting.config.RabbitmqProductConfig;
 import com.vehiclecontacting.pojo.Result;
@@ -14,9 +13,9 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -144,6 +143,7 @@ public class UserController {
         return ResultUtils.getResult(new JSONObject(),"existWrong");
     }
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "phone",value = "用户电话",dataType = "string",paramType = "query")
@@ -163,24 +163,26 @@ public class UserController {
     }
 
 
-    //@Secured("ROLE_USER")
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "username",value = "用户昵称",dataType = "string",paramType = "query"),
             @ApiImplicitParam(name = "sex",value = "性别",dataType = "string",paramType = "query"),
-            @ApiImplicitParam(name = "introduction",value = "自我介绍",dataType = "string",paramType = "query")
+            @ApiImplicitParam(name = "introduction",value = "自我介绍",dataType = "string",paramType = "query"),
+            @ApiImplicitParam(name = "isNoDisturb",value = "是否免打扰（0：否 1：是）",dataType = "int",paramType = "query")
     })
     @ApiOperation(value = "修改用户信息（需要用户角色）",notes = "existWrong：用户不存在 repeatWrong：用户没有修改信息（可能是重复请求或者用户写相同的信息保存）success：成功")
     @PatchMapping("/user")
     public Result<JSONObject> patchUser(@RequestParam("id") Long id,@RequestParam(value = "username",required = false) String username,
                                         @RequestParam(value = "sex",required = false) String sex,
-                                        @RequestParam(value = "introduction",required = false) String introduction){
+                                        @RequestParam(value = "introduction",required = false) String introduction,
+                                        @RequestParam(value = "isNoDisturb",required = false) Integer isNoDisturb){
         log.info("正在修改用户信息");
-        return ResultUtils.getResult(new JSONObject(),userService.patchUser(id,username,sex,introduction));
+        return ResultUtils.getResult(new JSONObject(),userService.patchUser(id,username,sex,introduction,isNoDisturb));
     }
 
 
-    //@Secured("ROLE_USER")
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "photo",value = "头像文件",required = true,dataType = "file",paramType = "body"),
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "string",paramType = "query")
@@ -204,6 +206,7 @@ public class UserController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "关注者id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "toId",value = "被关注者id",required = true,dataType = "Long",paramType = "query")
@@ -216,6 +219,7 @@ public class UserController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "关注者id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "toId",value = "被关注者id",required = true,dataType = "Long",paramType = "query")
@@ -228,6 +232,7 @@ public class UserController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
@@ -243,6 +248,7 @@ public class UserController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
@@ -256,6 +262,8 @@ public class UserController {
         log.info("正在获取用户关注列表，id：" + id + " cnt：" + cnt + " page：" + page);
         return ResultUtils.getResult(userService.getFollow(id,cnt,page,keyword),"success");
     }
+
+
 
     @ApiImplicitParams({
             @ApiImplicitParam(name = "email",value = "邮箱",required = true,dataType = "string",paramType = "query"),
@@ -306,6 +314,7 @@ public class UserController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query")
     @ApiOperation(value = "清空历史记录",notes = "repeatWrong：历史记录已被清空（可能是重复请求） success：成功")
     @DeleteMapping("/allHistory")
@@ -315,6 +324,7 @@ public class UserController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
@@ -329,7 +339,7 @@ public class UserController {
     }
 
 
-
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "查看者",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "toId",value = "被查看者",required = true,dataType = "Long",paramType = "query")
@@ -345,6 +355,7 @@ public class UserController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "举报人id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "toId",value = "被举报人id",required = true,dataType = "Long",paramType = "query"),
@@ -366,6 +377,7 @@ public class UserController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "photo",value = "上传的图片",required = true,dataType = "file",paramType = "body")
@@ -384,6 +396,7 @@ public class UserController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "title",value = "标题",required = true,dataType = "string",paramType = "query"),
@@ -397,7 +410,7 @@ public class UserController {
         return ResultUtils.getResult(new JSONObject(), userService.addFeedback(id, title, description));
     }
 
-
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "numbers",value = "历史记录中discuss编号",required = true,allowMultiple = true,dataType = "Long",paramType = "query")
@@ -411,6 +424,7 @@ public class UserController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "toId",value = "被拉黑用户id",required = true,dataType = "Long",paramType = "query")
@@ -423,6 +437,7 @@ public class UserController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "toId",value = "被取消拉黑用户id",required = true,dataType = "Long",paramType = "query")
@@ -434,6 +449,8 @@ public class UserController {
         return ResultUtils.getResult(new JSONObject(),userService.removeBlack(fromId,toId));
     }
 
+
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
@@ -447,6 +464,8 @@ public class UserController {
         return ResultUtils.getResult(userService.getBlackList(id,page,cnt),"success");
     }
 
+
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "toId",value = "被加好友用户id",required = true,dataType = "Long",paramType = "query"),
@@ -460,6 +479,8 @@ public class UserController {
         return ResultUtils.getResult(new JSONObject(),userService.addFriend(fromId,toId,reason));
     }
 
+
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "toId",value = "申请人id",required = true,dataType = "Long",paramType = "query"),
@@ -473,6 +494,8 @@ public class UserController {
         return ResultUtils.getResult(new JSONObject(),userService.verifyFriend(fromId,toId,isPass));
     }
 
+
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
@@ -487,6 +510,7 @@ public class UserController {
         return ResultUtils.getResult(userService.getPostFriend(id,cnt,page,type),"success");
     }
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "toId",value = "被删除好友id",required = true,dataType = "Long",paramType = "query")
@@ -498,6 +522,8 @@ public class UserController {
         return ResultUtils.getResult(new JSONObject(),userService.deleteFriend(fromId,toId));
     }
 
+
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "type",value = "排序规则（1：按时间倒序 2：按昵称顺序）",required = true,dataType = "int",paramType = "query"),
@@ -512,6 +538,8 @@ public class UserController {
         return ResultUtils.getResult(userService.getFriendList(id,type,cnt,page),"success");
     }
 
+
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "toId",value = "被查询用户id",required = true,dataType = "Long",paramType = "query")
@@ -525,6 +553,7 @@ public class UserController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "username",value = "用户昵称（就是keyword，也是模糊查询）",required = true,dataType = "string",paramType = "query"),
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
@@ -538,17 +567,23 @@ public class UserController {
         return ResultUtils.getResult(userService.searchUser(username,page,cnt),"success");
     }
 
+
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
-            @ApiImplicitParam(name = "toId",value = "接收id",required = true,dataType = "Long",paramType = "query")
+            @ApiImplicitParam(name = "toId",value = "接收id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "relationship",value = "关系",required = true,dataType = "string",paramType = "query")
     })
     @ApiOperation(value = "申请联结用户",notes = "userWrong：用户连接已达到3个  blackWrong：用户在黑名单内  repeatWrong：已在连接列表内  success：成功")
     @PostMapping("/linkUser")
-    public Result<JSONObject> linkUser(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId){
-        log.info("正在申请联结用户，fromId：" + fromId + " toId：" + toId);
-        return ResultUtils.getResult(new JSONObject(),userService.linkUser(fromId,toId));
+    public Result<JSONObject> linkUser(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId,
+                                       @RequestParam("relationship") String relationship){
+        log.info("正在申请联结用户，fromId：" + fromId + " toId：" + toId + " relationship：" + relationship);
+        return ResultUtils.getResult(new JSONObject(),userService.linkUser(fromId,toId,relationship));
     }
 
+
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "cnt",value = "页面数据量",required = true,dataType = "Long",paramType = "query"),
@@ -564,6 +599,7 @@ public class UserController {
     }
 
 
+    @Secured("ROLE_USER")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "fromId",value = "来自哪个用户id",required = true,dataType = "Long",paramType = "query"),
             @ApiImplicitParam(name = "toId",value = "自己的用户id",required = true,dataType = "Long",paramType = "query"),
@@ -576,6 +612,43 @@ public class UserController {
         log.info("正在审核联结申请，fromId：" + fromId + " toId：" + toId + " isPass：" + isPass);
         return ResultUtils.getResult(new JSONObject(),userService.judgeLinkUser(fromId,toId,isPass));
     }
+
+    @Secured("ROLE_USER")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id",value = "用户id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "获取用户联结用户列表",notes = "success：成功  返回linkUserList：联结的用户列表 最多就3个，所以就不分页了~")
+    @GetMapping("/linkUser")
+    public Result<JSONObject> getLinkUserList(@RequestParam("id") Long id){
+        log.info("正在获取用户联结列表，id：" + id);
+        return ResultUtils.getResult(userService.getLinkUser(id),"success");
+    }
+
+    @Secured("ROLE_USER")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "对方id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "解除联结关系",notes = "existWrong：联结关系不存在 success：成功")
+    @DeleteMapping("/removeLink")
+    public Result<JSONObject> deleteLink(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId){
+        log.info("正在解除联结关系，fromId：" + fromId + " toId：" + toId);
+        return ResultUtils.getResult(new JSONObject(),userService.deleteLinkUser(fromId,toId));
+    }
+
+    @Secured("ROLE_USER")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "fromId",value = "用户id",required = true,dataType = "Long",paramType = "query"),
+            @ApiImplicitParam(name = "toId",value = "对方id",required = true,dataType = "Long",paramType = "query")
+    })
+    @ApiOperation(value = "判断两人是否已联结关系",notes = "success：成功  返回json status：1有 0 没有")
+    @GetMapping("/judgeLink")
+    public Result<JSONObject> judgeLink(@RequestParam("fromId") Long fromId,@RequestParam("toId") Long toId){
+        log.info("正在判断两人是否有联结关系，fromId：" + fromId + " toId：" + toId);
+        return ResultUtils.getResult(userService.judgeLink(fromId,toId),"success");
+    }
+
+
 
 
 }

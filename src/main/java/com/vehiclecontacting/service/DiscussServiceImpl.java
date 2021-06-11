@@ -1,9 +1,11 @@
 package com.vehiclecontacting.service;
 
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.vehiclecontacting.config.RabbitmqProductConfig;
 import com.vehiclecontacting.mapper.*;
 import com.vehiclecontacting.msg.*;
 import com.vehiclecontacting.pojo.*;
@@ -45,6 +47,9 @@ public class DiscussServiceImpl implements DiscussService{
 
     @Autowired
     private HistoryDiscussMapper historyDiscussMapper;
+
+    @Autowired
+    private RabbitmqProductConfig rabbitmqProductConfig;
 
     public static List<String> hotDiscussKeyWord = new LinkedList<>();
 
@@ -159,9 +164,19 @@ public class DiscussServiceImpl implements DiscussService{
                 Date date = calendar.getTime();
                 user.setNoSpeakDate(date);
                 log.info("用户垃圾话过多，已被禁言2小时");
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("id",id);
+                jsonObject.put("message","您在社区的发言不符合规范，已被自动禁言2小时！");
+                jsonObject.put("title","禁言通知");
+                rabbitmqProductConfig.sendBoxMessage(jsonObject);
             }
             userMapper.updateById(user);
             log.info("评论失败，用户说垃圾话");
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("id",id);
+            jsonObject.put("message","您在社区的发言不符合规范，该发言已被自动删除，多次犯规会遭受禁言处罚！");
+            jsonObject.put("title","评论过滤通知");
+            rabbitmqProductConfig.sendBoxMessage(jsonObject);
             return "dirtyWrong";
         }
         Discuss discuss = discussMapper.selectById(number);
@@ -191,6 +206,12 @@ public class DiscussServiceImpl implements DiscussService{
                 comment1.setDiscussNumber(number);
                 //添加评论
                 commentMapper.insert(comment1);
+                //回复别人
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("id",replyComment.getId());
+                jsonObject.put("title",user.getUsername() + "回复了你的评论");
+                jsonObject.put("message",comments);
+                rabbitmqProductConfig.sendBoxMessage(jsonObject);
             }else {
                 //二级一般评论
                 Comment comment1 = new Comment();
@@ -203,6 +224,13 @@ public class DiscussServiceImpl implements DiscussService{
             }
             comment.setCommentCounts(comment.getCommentCounts() + 1);
             commentMapper.updateById(comment);
+            if(!comment.getId().equals(user.getId())){
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("id",comment.getId());
+                jsonObject.put("title",user.getUsername() + "评论了你的留言");
+                jsonObject.put("message",comments);
+                rabbitmqProductConfig.sendBoxMessage(jsonObject);
+            }
         }else{
             //一级评论
             Comment comment = new Comment();
@@ -211,6 +239,14 @@ public class DiscussServiceImpl implements DiscussService{
             comment.setDiscussNumber(number);
             //添加评论
             commentMapper.insert(comment);
+            User user1 = userMapper.selectById(discuss.getFromId());
+            if(!user1.getId().equals(discuss.getFromId())){
+                JSONObject jsonObject = new JSONObject();
+                jsonObject.put("id",discuss.getFromId());
+                jsonObject.put("title",user1.getUsername() + "评论了你的帖子");
+                jsonObject.put("message",comments);
+                rabbitmqProductConfig.sendBoxMessage(jsonObject);
+            }
         }
         //更新评论数
         discuss.setCommentCounts(discuss.getCommentCounts() + 1);
@@ -445,6 +481,11 @@ public class DiscussServiceImpl implements DiscussService{
         //帖子收藏缓存
         redisUtils.addKeyByTime("cntFavor_" + number,24);
         //通知待完成
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("id",discuss.getFromId());
+        jsonObject.put("title","用户收藏通知");
+        jsonObject.put("message","有一个新用户收藏了您的帖子");
+        rabbitmqProductConfig.sendBoxMessage(jsonObject);
         log.info("收藏帖子成功");
         return "success";
     }
@@ -499,6 +540,11 @@ public class DiscussServiceImpl implements DiscussService{
         comment.setLikeCounts(comment.getLikeCounts() + 1);
         commentMapper.updateById(comment);
         //通知待完成
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("id",comment.getId());
+        jsonObject.put("message","有一个新用户点赞了您的评论");
+        jsonObject.put("title","用户点赞通知");
+        rabbitmqProductConfig.sendBoxMessage(jsonObject);
         log.info("点赞评论成功");
         return "success";
     }
@@ -578,6 +624,11 @@ public class DiscussServiceImpl implements DiscussService{
         //点赞缓存
         redisUtils.addKeyByTime("cntLike_" + number,24);
         //推送待完成
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("id",discuss.getFromId());
+        jsonObject.put("title","帖子点赞通知");
+        jsonObject.put("message","有一个新用户点赞了您的帖子");
+        rabbitmqProductConfig.sendBoxMessage(jsonObject);
         log.info("点赞帖子成功");
         return "success";
     }
@@ -782,7 +833,7 @@ public class DiscussServiceImpl implements DiscussService{
                 ck ++;
                 if(ck == 1){
                     User user1 = userMapper.selectById(x1.getId());
-                    secondCommentMsg.setReplyNumber1(x.getNumber());
+                    secondCommentMsg.setReplyNumber1(x1.getNumber());
                     secondCommentMsg.setReplyId1(user1.getId());
                     secondCommentMsg.setReplyPhoto1(user1.getPhoto());
                     secondCommentMsg.setReplyUsername1(user1.getUsername());
@@ -798,7 +849,7 @@ public class DiscussServiceImpl implements DiscussService{
                     }
                 }else if(ck == 2){
                     User user1 = userMapper.selectById(x1.getId());
-                    secondCommentMsg.setReplyNumber2(x.getNumber());
+                    secondCommentMsg.setReplyNumber2(x1.getNumber());
                     secondCommentMsg.setReplyId2(user1.getId());
                     secondCommentMsg.setReplyPhoto2(user1.getPhoto());
                     secondCommentMsg.setReplyUsername2(user1.getUsername());

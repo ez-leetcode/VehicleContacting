@@ -19,7 +19,7 @@ public interface UserService {
 
     User getUser(Long id,String phone);
 
-    String patchUser(Long id,String username,String sex,String introduction);
+    String patchUser(Long id,String username,String sex,String introduction,Integer isNoDisturb);
 
     String loginByCode(String phone,String code);
 
@@ -71,9 +71,15 @@ public interface UserService {
 
     JSONObject searchUser(String username,Long page,Long cnt);
 
-    String linkUser(Long fromId,Long toId);
+    String linkUser(Long fromId,Long toId,String relationship);
 
     JSONObject getPostLinkUser(Long id,Long cnt,Long page,Integer type);
 
     String judgeLinkUser(Long fromId,Long toId,Integer isPass);
+
+    JSONObject getLinkUser(Long id);
+
+    String deleteLinkUser(Long fromId,Long toId);
+
+    JSONObject judgeLink(Long fromId,Long toId);
 }
