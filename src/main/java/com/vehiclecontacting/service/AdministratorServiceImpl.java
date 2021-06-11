@@ -231,6 +231,7 @@ public class AdministratorServiceImpl implements AdministratorService{
         if(isPass != 3){
             wrapper.eq("is_pass",isPass);
         }
+        wrapper.orderByDesc("create_time");
         complainVehicleMapper.selectPage(page1,wrapper);
         List<ComplainVehicle> complainVehicleList = page1.getRecords();
         List<ComplainVehicleMsg> complainVehicleMsgList = new LinkedList<>();

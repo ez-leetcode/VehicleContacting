@@ -46,7 +46,7 @@ public class RabbitmqConsumerConfig {
           //待完成
           BoxMessage boxMessage = jsonObject.toJavaObject(BoxMessage.class);
           log.info(boxMessage.toString());
-          websocketService.sendBoxMsg(boxMessage);
+          websocketService.sendBoxMsgToEveryoneOnline(boxMessage);
      }
 
      @RabbitListener(bindings = @QueueBinding(value = @Queue(value = RabbitmqConfig.BOX_QUEUE_NAME,durable = "true"),

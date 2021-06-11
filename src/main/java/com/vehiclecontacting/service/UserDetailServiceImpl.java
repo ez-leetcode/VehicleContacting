@@ -47,8 +47,10 @@ public class UserDetailServiceImpl implements UserDetailsService {
         }
         QueryWrapper<UserRole> wrapper1 = new QueryWrapper<>();
         wrapper1.eq("user",user.getId());
+        log.info(user.toString());
         Collection<GrantedAuthority> authList = new ArrayList<>();
         List<UserRole> userRoleList = userRoleMapper.selectList(wrapper1);
+        log.info(userRoleList.toString());
         for(UserRole x:userRoleList){
             //获取用户角色
             Role role = roleMapper.selectById(x.getRole());

@@ -119,6 +119,19 @@ public class WebsocketService {
         log.info("消息盒子更新成功");
     }
 
+    public void sendBoxMsgToEveryoneOnline(BoxMessage boxMessage){
+        log.info("正在向所有在线的用户推送通知");
+        log.info(boxMessage.toString());
+        for(String x:websocketServiceConcurrentHashMap.keySet()){
+            log.info("正在给用户：" + x + "推送通知");
+            SystemMsg systemMsg = new SystemMsg(boxMessage.getTitle(),boxMessage.getMessage());
+            WebsocketService websocketService = websocketServiceConcurrentHashMap.get(x);
+            websocketService.session.getAsyncRemote().sendText(TalkResultUtils.getResult(JSON.parseObject(systemMsg.toString()),"systemInfoSuccess").toString());
+            log.info("消息推送成功");
+            boxService.addBoxMessage(Long.getLong(x),boxMessage.getMessage(),boxMessage.getTitle());
+        }
+    }
+
 
     //发送聊天信息
     public void sendMsg(TalkMsg talkMsg){

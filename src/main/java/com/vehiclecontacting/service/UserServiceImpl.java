@@ -192,6 +192,7 @@ public class UserServiceImpl implements UserService{
             user1.setUsername(phone);
             user1.setPhone(phone);
             user1.setSex("女");
+            user1.setVip(0);
             user1.setPassword(new BCryptPasswordEncoder().encode(phone));
             userMapper.insert(user1);
             log.info("创建新用户成功");
@@ -201,7 +202,13 @@ public class UserServiceImpl implements UserService{
             QueryWrapper<User> wrapper1 = new QueryWrapper<>();
             wrapper1.eq("phone",phone);
             User user2 = userMapper.selectOne(wrapper1);
-            redisUtils.addByBloomFilter(bloomFilterConfig,"xql",user2.getId());
+            //给用户身份
+            UserRole userRole = new UserRole();
+            userRole.setUser(user2.getId());
+            userRole.setRole(1);
+            //存入用户角色表
+            userRoleMapper.insert(userRole);
+            redisUtils.addByBloomFilter(bloomFilterConfig,"xql",user2.getId().toString());
             return "success";
         }
         if(user.getFrozenDate() != null && user.getFrozenDate().after(new Date())){

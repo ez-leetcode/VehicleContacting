@@ -158,6 +158,8 @@ public class UserController {
         if(user == null){
             return ResultUtils.getResult(jsonObject,"existWrong");
         }
+        //设置下密码，不返回过去
+        user.setPassword("不让你知道~");
         jsonObject.put("user",user);
         return ResultUtils.getResult(jsonObject,"success");
     }

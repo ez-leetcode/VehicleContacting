@@ -36,5 +36,13 @@ public class RabbitmqProductConfig {
         rabbitTemplate.convertAndSend(RabbitmqConfig.BOX_EXCHANGE_NAME,RabbitmqConfig.BOX_ROUTING_KEY,jsonObject,correlationData);
     }
 
+    public void sendQuartzMessage(JSONObject jsonObject){
+        log.info("正在发送定时任务消息");
+        log.info(jsonObject.toString());
+        CorrelationData correlationData = new CorrelationData(UUID.randomUUID().toString());
+        rabbitTemplate.convertAndSend(RabbitmqConfig.QUARTZ_EXCHANGE_NAME,RabbitmqConfig.QUARTZ_ROUTING_KEY,jsonObject,correlationData);
+    }
+
+
 
 }
